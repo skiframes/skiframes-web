@@ -1,0 +1,288 @@
+/**
+ * Download module for individual and bulk downloads
+ */
+
+const Download = {
+    // Selected items for bulk download
+    selected: new Set(),
+
+    // Download queue
+    queue: [],
+    isProcessing: false,
+
+    /**
+     * Add item to selection
+     */
+    select(itemId) {
+        this.selected.add(itemId);
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Remove item from selection
+     */
+    deselect(itemId) {
+        this.selected.delete(itemId);
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Toggle item selection
+     */
+    toggle(itemId) {
+        if (this.selected.has(itemId)) {
+            this.deselect(itemId);
+        } else {
+            this.select(itemId);
+        }
+    },
+
+    /**
+     * Check if item is selected
+     */
+    isSelected(itemId) {
+        return this.selected.has(itemId);
+    },
+
+    /**
+     * Select all visible items
+     */
+    selectAll(itemIds) {
+        itemIds.forEach(id => this.selected.add(id));
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Clear all selections
+     */
+    clearSelection() {
+        this.selected.clear();
+        this.updateSelectionUI();
+    },
+
+    /**
+     * Get selected count
+     */
+    getSelectedCount() {
+        return this.selected.size;
+    },
+
+    /**
+     * Update selection UI
+     */
+    updateSelectionUI() {
+        const countEl = document.getElementById('selectionCount');
+        const downloadBtn = document.getElementById('downloadSelected');
+
+        if (countEl) {
+            countEl.textContent = `${this.selected.size} items selected`;
+        }
+
+        if (downloadBtn) {
+            downloadBtn.disabled = this.selected.size === 0;
+        }
+
+        // Update checkbox states
+        this.selected.forEach(id => {
+            const checkbox = document.querySelector(`[data-item-id="${id}"] input[type="checkbox"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+
+        document.querySelectorAll('.video-card input[type="checkbox"]').forEach(checkbox => {
+            const card = checkbox.closest('[data-item-id]');
+            if (card && !this.selected.has(card.dataset.itemId)) {
+                checkbox.checked = false;
+            }
+        });
+    },
+
+    /**
+     * Download a single file
+     */
+    downloadSingle(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || this.getFilenameFromUrl(url);
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    },
+
+    /**
+     * Download selected items
+     * For multiple files, downloads them sequentially with a delay
+     */
+    async downloadSelected(items) {
+        const selectedItems = items.filter(item => this.selected.has(item.id));
+
+        if (selectedItems.length === 0) return;
+
+        // For a single item, just download directly
+        if (selectedItems.length === 1) {
+            const item = selectedItems[0];
+            this.downloadSingle(item.url, item.filename);
+            return;
+        }
+
+        // For multiple items, use download queue
+        this.showProgress();
+        this.queue = [...selectedItems];
+        this.isProcessing = true;
+
+        let completed = 0;
+        const total = this.queue.length;
+
+        for (const item of this.queue) {
+            if (!this.isProcessing) break; // Check for cancellation
+
+            this.updateProgress(completed, total, item.filename);
+
+            // Download the file
+            this.downloadSingle(item.url, item.filename);
+
+            completed++;
+
+            // Small delay between downloads to prevent browser blocking
+            if (completed < total) {
+                await this.delay(500);
+            }
+        }
+
+        this.hideProgress();
+        this.isProcessing = false;
+
+        // Clear selection after download
+        this.clearSelection();
+    },
+
+    /**
+     * Download all items for a team
+     */
+    async downloadByTeam(items, team) {
+        const teamItems = items.filter(item => item.team === team);
+
+        if (teamItems.length === 0) {
+            alert(`No items found for team ${team}`);
+            return;
+        }
+
+        // Select all team items and download
+        teamItems.forEach(item => this.select(item.id));
+        await this.downloadSelected(teamItems);
+    },
+
+    /**
+     * Show download progress UI
+     */
+    showProgress() {
+        const progressEl = document.getElementById('downloadProgress');
+        if (progressEl) {
+            progressEl.style.display = 'block';
+        }
+    },
+
+    /**
+     * Hide download progress UI
+     */
+    hideProgress() {
+        const progressEl = document.getElementById('downloadProgress');
+        if (progressEl) {
+            progressEl.style.display = 'none';
+        }
+    },
+
+    /**
+     * Update progress UI
+     */
+    updateProgress(completed, total, currentFile) {
+        const fillEl = document.getElementById('progressFill');
+        const textEl = document.getElementById('progressText');
+
+        if (fillEl) {
+            const percent = (completed / total) * 100;
+            fillEl.style.width = `${percent}%`;
+        }
+
+        if (textEl) {
+            textEl.textContent = `${completed} of ${total} files - ${currentFile}`;
+        }
+    },
+
+    /**
+     * Cancel download queue
+     */
+    cancelDownload() {
+        this.isProcessing = false;
+        this.queue = [];
+        this.hideProgress();
+    },
+
+    /**
+     * Helper: Get filename from URL
+     */
+    getFilenameFromUrl(url) {
+        return url.split('/').pop().split('?')[0];
+    },
+
+    /**
+     * Helper: Delay for async operations
+     */
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    /**
+     * Generate a ZIP file for bulk download (requires JSZip library)
+     * Falls back to sequential downloads if JSZip not available
+     */
+    async downloadAsZip(items, zipName = 'skiframes-download.zip') {
+        // Check if JSZip is available
+        if (typeof JSZip === 'undefined') {
+            console.log('JSZip not available, falling back to sequential downloads');
+            return this.downloadSelected(items);
+        }
+
+        this.showProgress();
+        this.isProcessing = true;
+
+        const zip = new JSZip();
+        let completed = 0;
+        const total = items.length;
+
+        for (const item of items) {
+            if (!this.isProcessing) break;
+
+            this.updateProgress(completed, total, `Fetching ${item.filename}`);
+
+            try {
+                const response = await fetch(item.url);
+                const blob = await response.blob();
+                zip.file(item.filename, blob);
+            } catch (error) {
+                console.error(`Failed to fetch ${item.filename}:`, error);
+            }
+
+            completed++;
+        }
+
+        if (this.isProcessing) {
+            this.updateProgress(total, total, 'Creating ZIP file...');
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+
+            this.downloadSingle(url, zipName);
+            URL.revokeObjectURL(url);
+        }
+
+        this.hideProgress();
+        this.isProcessing = false;
+        this.clearSelection();
+    }
+};
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Download;
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event - Skiframes</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="assets/logo.svg" alt="Skiframes" class="logo-img">
+                <span class="logo-text">Skiframes</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">← Back to Events</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Event Header -->
+        <section class="event-header">
+            <div class="event-header-content">
+                <span id="eventType" class="event-badge">Race</span>
+                <h1 id="eventName">Loading...</h1>
+                <p id="eventMeta" class="event-meta"></p>
+            </div>
+        </section>
+
+        <!-- Search & Filters -->
+        <section class="filters-bar">
+            <div class="filters-content">
+                <div class="filter-group search-group">
+                    <input type="text" id="athleteSearch" placeholder="Search athlete name or bib..." class="search-input">
+                </div>
+                <div class="filter-group">
+                    <label for="teamFilterEvent">Team</label>
+                    <select id="teamFilterEvent" class="filter-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="categoryFilterEvent">Category</label>
+                    <select id="categoryFilterEvent" class="filter-select">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="genderFilter">Gender</label>
+                    <select id="genderFilter" class="filter-select">
+                        <option value="">All</option>
+                        <option value="Men">Men</option>
+                        <option value="Women">Women</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="runFilter">Run</label>
+                    <select id="runFilter" class="filter-select">
+                        <option value="">All Runs</option>
+                        <option value="1">Run 1</option>
+                        <option value="2">Run 2</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="contentType">Content</label>
+                    <select id="contentType" class="filter-select">
+                        <option value="">All</option>
+                        <option value="videos">Videos Only</option>
+                        <option value="comparison">Comparison Videos</option>
+                        <option value="montages">Photo Montages</option>
+                    </select>
+                </div>
+                <button id="clearFiltersEvent" class="btn btn-secondary">Clear</button>
+            </div>
+        </section>
+
+        <!-- Bulk Download -->
+        <section class="download-bar">
+            <div class="download-content">
+                <span id="selectionCount">0 items selected</span>
+                <div class="download-actions">
+                    <button id="selectAll" class="btn btn-sm">Select All Visible</button>
+                    <button id="selectNone" class="btn btn-sm">Select None</button>
+                    <button id="downloadSelected" class="btn btn-primary btn-sm" disabled>Download Selected</button>
+                    <div class="dropdown">
+                        <button id="downloadByTeam" class="btn btn-sm">Download by Team ▾</button>
+                        <div id="teamDropdown" class="dropdown-menu" style="display: none;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Tabs -->
+        <section class="tabs">
+            <button class="tab active" data-tab="videos">Videos</button>
+            <button class="tab" data-tab="montages">Photo Montages</button>
+        </section>
+
+        <!-- Videos Section -->
+        <section id="videosSection" class="content-section">
+            <div class="view-toggle">
+                <button id="gridView" class="view-btn active" title="Grid View">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="2" y="2" width="7" height="7" rx="1"/>
+                        <rect x="11" y="2" width="7" height="7" rx="1"/>
+                        <rect x="2" y="11" width="7" height="7" rx="1"/>
+                        <rect x="11" y="11" width="7" height="7" rx="1"/>
+                    </svg>
+                </button>
+                <button id="listView" class="view-btn" title="List View">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="2" y="3" width="16" height="3" rx="1"/>
+                        <rect x="2" y="8.5" width="16" height="3" rx="1"/>
+                        <rect x="2" y="14" width="16" height="3" rx="1"/>
+                    </svg>
+                </button>
+                <span class="results-count" id="videoCount">0 videos</span>
+            </div>
+
+            <div id="videosGrid" class="content-grid">
+                <!-- Populated by JS -->
+                <div class="loading">Loading videos...</div>
+            </div>
+        </section>
+
+        <!-- Montages Section -->
+        <section id="montagesSection" class="content-section" style="display: none;">
+            <div class="view-toggle">
+                <button id="gridViewMontages" class="view-btn active" title="Grid View">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="2" y="2" width="7" height="7" rx="1"/>
+                        <rect x="11" y="2" width="7" height="7" rx="1"/>
+                        <rect x="2" y="11" width="7" height="7" rx="1"/>
+                        <rect x="11" y="11" width="7" height="7" rx="1"/>
+                    </svg>
+                </button>
+                <span class="results-count" id="montageCount">0 montages</span>
+            </div>
+
+            <div id="montagesGrid" class="content-grid montages-grid">
+                <!-- Populated by JS -->
+                <div class="loading">Loading montages...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="modal" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content video-modal-content">
+            <button class="modal-close">&times;</button>
+            <div class="video-container">
+                <video id="modalVideo" controls>
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+            <div class="video-info">
+                <h3 id="videoTitle"></h3>
+                <p id="videoMeta"></p>
+                <div class="video-controls">
+                    <button id="speedDown" class="btn btn-sm">0.5x</button>
+                    <button id="speedNormal" class="btn btn-sm btn-active">1x</button>
+                    <button id="speedUp" class="btn btn-sm">2x</button>
+                    <span class="divider"></span>
+                    <button id="frameBack" class="btn btn-sm">← Frame</button>
+                    <button id="frameForward" class="btn btn-sm">Frame →</button>
+                    <span class="divider"></span>
+                    <a id="downloadVideo" href="" download class="btn btn-primary btn-sm">Download</a>
+                    <a id="downloadComparison" href="" download class="btn btn-secondary btn-sm" style="display: none;">Download Comparison</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content image-modal-content">
+            <button class="modal-close">&times;</button>
+            <img id="modalImage" src="" alt="">
+            <div class="image-info">
+                <h3 id="imageTitle"></h3>
+                <a id="downloadImage" href="" download class="btn btn-primary">Download Full Resolution</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Progress -->
+    <div id="downloadProgress" class="download-progress" style="display: none;">
+        <div class="download-progress-content">
+            <h4>Preparing Download</h4>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+            </div>
+            <p id="progressText">0 of 0 files</p>
+            <button id="cancelDownload" class="btn btn-sm">Cancel</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Skiframes. Video analytics for alpine ski racing.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/download.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

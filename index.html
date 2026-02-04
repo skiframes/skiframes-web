@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skiframes - Ski Race Videos & Photo Montages</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="assets/logo.svg" alt="Skiframes" class="logo-img">
+                <span class="logo-text">Skiframes</span>
+            </a>
+            <nav class="nav">
+                <a href="#races" class="nav-link">Race Days</a>
+                <a href="#training" class="nav-link">Training</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Ski Race Videos & Photo Montages</h1>
+                <p>Browse race footage and training sessions from Ragged Mountain</p>
+                <div class="hero-search">
+                    <input type="text" id="globalSearch" placeholder="Search by athlete name or bib number..." class="search-input">
+                    <button id="searchBtn" class="btn btn-primary">Search</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Filters -->
+        <section class="filters-bar">
+            <div class="filters-content">
+                <div class="filter-group">
+                    <label for="dateFilter">Date</label>
+                    <input type="date" id="dateFilter" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label for="teamFilter">Team</label>
+                    <select id="teamFilter" class="filter-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="categoryFilter">Category</label>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">All Categories</option>
+                        <option value="U10">U10</option>
+                        <option value="U12">U12</option>
+                        <option value="U14">U14</option>
+                        <option value="U16">U16</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="typeFilter">Type</label>
+                    <select id="typeFilter" class="filter-select">
+                        <option value="">All</option>
+                        <option value="race">Race Days</option>
+                        <option value="training">Training</option>
+                    </select>
+                </div>
+                <button id="clearFilters" class="btn btn-secondary">Clear</button>
+            </div>
+        </section>
+
+        <!-- Recent Events -->
+        <section class="section" id="recent">
+            <div class="section-header">
+                <h2>Recent Events</h2>
+                <a href="#all" class="view-all">View All →</a>
+            </div>
+            <div id="recentEvents" class="events-grid">
+                <!-- Populated by JS -->
+                <div class="loading">Loading events...</div>
+            </div>
+        </section>
+
+        <!-- Race Days -->
+        <section class="section" id="races">
+            <div class="section-header">
+                <h2>Race Days</h2>
+            </div>
+            <div id="raceEvents" class="events-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Training Sessions -->
+        <section class="section" id="training">
+            <div class="section-header">
+                <h2>Training Sessions</h2>
+            </div>
+            <div id="trainingEvents" class="events-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="modal" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content video-modal-content">
+            <button class="modal-close">&times;</button>
+            <div class="video-container">
+                <video id="modalVideo" controls>
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+            <div class="video-info">
+                <h3 id="videoTitle"></h3>
+                <p id="videoMeta"></p>
+                <div class="video-controls">
+                    <button id="speedDown" class="btn btn-sm">0.5x</button>
+                    <button id="speedNormal" class="btn btn-sm btn-active">1x</button>
+                    <button id="speedUp" class="btn btn-sm">2x</button>
+                    <span class="divider"></span>
+                    <button id="frameBack" class="btn btn-sm">← Frame</button>
+                    <button id="frameForward" class="btn btn-sm">Frame →</button>
+                    <span class="divider"></span>
+                    <a id="downloadVideo" href="" download class="btn btn-primary btn-sm">Download</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content image-modal-content">
+            <button class="modal-close">&times;</button>
+            <img id="modalImage" src="" alt="">
+            <div class="image-info">
+                <h3 id="imageTitle"></h3>
+                <a id="downloadImage" href="" download class="btn btn-primary">Download Full Resolution</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Skiframes. Video analytics for alpine ski racing.</p>
+            <p class="footer-links">
+                <a href="https://github.com/skiframes">GitHub</a>
+                <span class="separator">•</span>
+                <a href="mailto:info@skiframes.com">Contact</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/download.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
