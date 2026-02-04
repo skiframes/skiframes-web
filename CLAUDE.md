@@ -137,9 +137,9 @@ skiframes-web/
 
 ## AWS Infrastructure
 
-### S3 Buckets
-1. `skiframes-web` - Static website files (HTML/CSS/JS)
-2. `skiframes-media` - Videos, images, manifests
+### S3 Buckets (obscured names for security)
+1. `avillachlab-net` - Static website files (HTML/CSS/JS)
+2. `avillachlab-netm` - Videos, images, manifests
 
 ### CloudFront Distributions
 1. `skiframes.com` - Website distribution (S3 origin)
@@ -171,3 +171,40 @@ The edge device (photo-montages repo) uploads content:
 4. Updates root `index.json` if new event
 
 Upload script in photo-montages handles manifest updates atomically.
+
+## Deployment
+
+### Prerequisites
+1. AWS CLI configured
+2. ACM certificate for skiframes.com in us-east-1
+3. Route 53 hosted zone
+
+### Steps
+```bash
+# 1. Deploy CloudFormation (one-time)
+aws cloudformation deploy \
+  --template-file infrastructure/cloudformation.yaml \
+  --stack-name skiframes-web \
+  --parameter-overrides CertificateArn=arn:aws:acm:us-east-1:xxx:certificate/xxx \
+  --region us-east-1
+
+# 2. Get outputs and update deploy.sh with DISTRIBUTION_ID
+
+# 3. Deploy website files
+./infrastructure/deploy.sh
+
+# 4. Upload media after video stitching
+./infrastructure/sync-media.sh /path/to/output/stitch_2026-02-04_u12_run_1
+```
+
+### DNS Setup
+- `skiframes.com` → CloudFront website distribution
+- `www.skiframes.com` → CloudFront website distribution
+- `media.skiframes.com` → CloudFront media distribution
+
+## Related Repository
+
+**photo-montages** (`/Users/paul2/skiframes/photo-montages/`) - Edge device software
+- Video stitching, photo montage generation
+- Calibration UI
+- See that repo's CLAUDE.md for details
