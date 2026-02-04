@@ -24,7 +24,7 @@ Resources:
   WebsiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${DomainName}-web'
+      BucketName: avillachlab-net
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: index.html
@@ -37,7 +37,7 @@ Resources:
   MediaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${DomainName}-media'
+      BucketName: avillachlab-netm
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders: ['*']

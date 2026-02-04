@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-BUCKET_NAME="skiframes.com-media"
+BUCKET_NAME="avillachlab-netm"
 REGION="us-east-1"
 
 # Colors

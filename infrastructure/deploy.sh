@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-BUCKET_NAME="skiframes.com-web"
+BUCKET_NAME="avillachlab-net"
 DISTRIBUTION_ID=""  # Set after CloudFormation deployment
 REGION="us-east-1"
 
