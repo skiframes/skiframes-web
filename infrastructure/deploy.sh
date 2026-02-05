@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 BUCKET_NAME="avillachlab-net"
-DISTRIBUTION_ID=""  # Set after CloudFormation deployment
+DISTRIBUTION_ID="E3PZ6V0J6EMIMY"  # Website CloudFront distribution
 REGION="us-east-1"
 
 # Colors for output

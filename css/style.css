@@ -63,8 +63,9 @@ body {
 }
 
 .logo-img {
-    width: 40px;
     height: 40px;
+    width: auto;
+    object-fit: contain;
 }
 
 .logo-text {
@@ -855,6 +856,14 @@ body {
    ======================================== */
 
 @media (max-width: 768px) {
+    .logo-img {
+        height: 32px;
+    }
+
+    .logo-text {
+        font-size: 18px;
+    }
+
     .hero h1 {
         font-size: 28px;
     }
