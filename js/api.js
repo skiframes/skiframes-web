@@ -160,6 +160,10 @@ const API = {
     getMediaUrl(relativePath, eventId) {
         if (!relativePath) return '';
         if (relativePath.startsWith('http')) return relativePath;
+        // Paths starting with 'logos/' are at root level, not within event folders
+        if (relativePath.startsWith('logos/')) {
+            return `${this.MEDIA_BASE}/${relativePath}`;
+        }
         return `${this.MEDIA_BASE}/events/${eventId}/${relativePath}`;
     },
 
