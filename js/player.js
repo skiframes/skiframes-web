@@ -106,6 +106,34 @@ const Player = {
     },
 
     /**
+     * Copy video link to clipboard
+     */
+    async copyLink() {
+        if (!this.currentVideoUrl) return;
+
+        const btn = document.getElementById('copyLink');
+        const originalText = btn?.textContent;
+
+        try {
+            await navigator.clipboard.writeText(this.currentVideoUrl);
+            if (btn) {
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('Failed to copy link:', err);
+            if (btn) {
+                btn.textContent = 'Failed';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+        }
+    },
+
+    /**
      * Set playback speed
      */
     setSpeed(speed) {
