@@ -617,8 +617,10 @@ const App = {
                 : statusUpper === 'DNF' ? 'DNF'
                 : video.rank ? `#${video.rank}` : '-';
 
-            // Format duration as time (e.g., 29.04s)
-            const durationDisplay = video.duration ? `${video.duration.toFixed(2)}s` : '-';
+            // Format duration as time (e.g., 29.04s), or show DNF/DSQ status
+            const durationDisplay = (statusUpper === 'DNF' || statusUpper === 'DSQ')
+                ? statusUpper
+                : video.duration ? `${video.duration.toFixed(2)}s` : '-';
 
             // Gender abbreviation
             const genderDisplay = video.gender === 'Women' ? 'F' : 'M';
