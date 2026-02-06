@@ -143,6 +143,7 @@ const API = {
             event_date: race.date || manifest.created_at?.split('T')[0] || dateFromId,
             event_type: 'race',
             location: manifest.course?.location || 'Ragged Mountain, NH',
+            logo_url: manifest.logo_url || null,
             teams: teams,
             categories: race.age_group ? [race.age_group] : [],
             summary: manifest.summary,
