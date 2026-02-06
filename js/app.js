@@ -213,9 +213,16 @@ const App = {
     updateEventHeader(manifest) {
         document.title = `${manifest.event_name} - Skiframes`;
 
+        const logoEl = document.getElementById('eventLogo');
         const typeEl = document.getElementById('eventType');
         const nameEl = document.getElementById('eventName');
         const metaEl = document.getElementById('eventMeta');
+
+        if (logoEl && manifest.logo_url) {
+            logoEl.src = API.getMediaUrl(manifest.logo_url);
+            logoEl.alt = manifest.event_name;
+            logoEl.style.display = 'block';
+        }
 
         if (typeEl) {
             typeEl.textContent = manifest.event_type;

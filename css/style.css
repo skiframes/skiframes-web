@@ -378,6 +378,16 @@ body {
 .event-header-content {
     max-width: 1400px;
     margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.event-logo {
+    width: 150px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .event-header h1 {
