@@ -332,8 +332,8 @@ const App = {
             Filters.set('search', searchQuery);
         }
 
-        // Setup tabs
-        this.setupTabs();
+        // Setup sort buttons
+        this.setupSortButtons();
 
         // Setup download listeners
         this.setupDownloadListeners(manifest);
@@ -452,25 +452,7 @@ const App = {
         });
     },
 
-    setupTabs() {
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.dataset.tab;
-
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-
-                // Show corresponding section
-                document.getElementById('videosSection').style.display =
-                    tabName === 'videos' ? 'block' : 'none';
-                document.getElementById('montagesSection').style.display =
-                    tabName === 'montages' ? 'block' : 'none';
-            });
-        });
-
-        // Sort buttons
+    setupSortButtons() {
         document.querySelectorAll('.sort-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.state.sortBy = btn.dataset.sort;
