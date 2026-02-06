@@ -372,6 +372,73 @@ body {
 }
 
 /* ========================================
+   Search Results
+   ======================================== */
+
+.search-results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.search-result-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.search-result-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-logo {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.search-result-logo img {
+    width: auto;
+    height: 60px;
+    object-fit: contain;
+}
+
+.search-result-info {
+    flex: 1;
+}
+
+.search-result-info h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.search-result-meta {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.search-result-event {
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ========================================
    Event Page Header
    ======================================== */
 

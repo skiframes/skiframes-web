@@ -58,14 +58,25 @@ const App = {
         const clearBtn = document.getElementById('clearFilters');
 
         if (searchInput) {
-            searchInput.addEventListener('input', () => {
-                Filters.set('search', searchInput.value);
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.performAthleteSearch(searchInput.value);
+                }
             });
         }
 
         if (searchBtn) {
             searchBtn.addEventListener('click', () => {
-                this.renderHomeEvents();
+                this.performAthleteSearch(searchInput?.value || '');
+            });
+        }
+
+        // Clear search button
+        const clearSearchBtn = document.getElementById('clearSearch');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                this.hideSearchResults();
             });
         }
 
@@ -163,6 +174,127 @@ const App = {
         `}).join('');
     },
 
+    /**
+     * Search for athletes across all events
+     */
+    async performAthleteSearch(query) {
+        if (!query || query.trim() === '') {
+            this.hideSearchResults();
+            return;
+        }
+
+        const searchTerm = query.trim().toLowerCase();
+        const resultsContainer = document.getElementById('searchResultsGrid');
+        const resultsSection = document.getElementById('searchResults');
+
+        if (!resultsContainer || !resultsSection) return;
+
+        // Show loading state
+        resultsSection.style.display = 'block';
+        resultsContainer.innerHTML = '<div class="loading">Searching athletes...</div>';
+
+        // Hide other sections while showing results
+        this.toggleEventSections(false);
+
+        try {
+            // Load all event manifests and search
+            const results = [];
+            for (const event of this.state.events) {
+                const manifest = await API.getEventManifest(event.event_id);
+                const videos = manifest.content?.videos || [];
+
+                // Filter to non-comparison videos only
+                const athleteVideos = videos.filter(v => !v.is_comparison);
+
+                // Search by name or bib
+                const matches = athleteVideos.filter(v => {
+                    const nameMatch = v.athlete.toLowerCase().includes(searchTerm);
+                    const bibMatch = v.bib.toString() === query.trim();
+                    return nameMatch || bibMatch;
+                });
+
+                if (matches.length > 0) {
+                    results.push({
+                        event: event,
+                        manifest: manifest,
+                        matches: matches
+                    });
+                }
+            }
+
+            this.renderSearchResults(results, query);
+        } catch (error) {
+            console.error('Search error:', error);
+            resultsContainer.innerHTML = '<div class="empty-state"><h3>Search failed</h3><p>Please try again</p></div>';
+        }
+    },
+
+    /**
+     * Render search results
+     */
+    renderSearchResults(results, query) {
+        const container = document.getElementById('searchResultsGrid');
+        if (!container) return;
+
+        if (results.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>No athletes found</h3>
+                    <p>No results for "${query}"</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Flatten results into individual athlete entries
+        let html = '';
+        results.forEach(({ event, manifest, matches }) => {
+            const logoUrl = event.logo_url ? API.getMediaUrl(event.logo_url) : '';
+            matches.forEach(video => {
+                html += `
+                <a href="event.html?event=${event.event_id}&search=${encodeURIComponent(video.athlete)}" class="search-result-card">
+                    <div class="search-result-logo">
+                        ${logoUrl ? `<img src="${logoUrl}" alt="">` : ''}
+                    </div>
+                    <div class="search-result-info">
+                        <h3>${video.athlete}</h3>
+                        <p class="search-result-meta">
+                            Bib ${video.bib} • ${video.team || ''} • ${video.gender}
+                            ${video.rank ? `• Rank ${video.rank}` : ''}
+                        </p>
+                        <p class="search-result-event">${event.event_name}</p>
+                    </div>
+                </a>
+                `;
+            });
+        });
+
+        container.innerHTML = html;
+    },
+
+    /**
+     * Hide search results and show event sections
+     */
+    hideSearchResults() {
+        const resultsSection = document.getElementById('searchResults');
+        if (resultsSection) {
+            resultsSection.style.display = 'none';
+        }
+        this.toggleEventSections(true);
+    },
+
+    /**
+     * Toggle visibility of event sections
+     */
+    toggleEventSections(show) {
+        ['recent', 'races', 'training'].forEach(id => {
+            const section = document.getElementById(id);
+            if (section) {
+                section.style.display = show ? 'block' : 'none';
+            }
+        });
+    },
+
     // ========================================
     // Event Page
     // ========================================
@@ -171,6 +303,7 @@ const App = {
         // Get event ID from URL
         const params = new URLSearchParams(window.location.search);
         const eventId = params.get('event');
+        const searchQuery = params.get('search');
 
         if (!eventId) {
             this.showError('No event specified');
@@ -189,6 +322,15 @@ const App = {
 
         // Setup filter listeners
         this.setupEventFilters();
+
+        // Apply search filter from URL if present
+        if (searchQuery) {
+            const searchInput = document.getElementById('athleteSearch');
+            if (searchInput) {
+                searchInput.value = searchQuery;
+            }
+            Filters.set('search', searchQuery);
+        }
 
         // Setup tabs
         this.setupTabs();
