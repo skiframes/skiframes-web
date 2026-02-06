@@ -7,7 +7,7 @@ const App = {
     state: {
         events: [],
         currentEvent: null,
-        sortBy: 'bib' // 'bib', 'rank', or 'duration'
+        sortBy: 'rank' // 'rank' or 'duration'
     },
 
     /**
@@ -314,8 +314,6 @@ const App = {
                 // Show corresponding section
                 document.getElementById('videosSection').style.display =
                     tabName === 'videos' ? 'block' : 'none';
-                document.getElementById('comparisonSection').style.display =
-                    tabName === 'comparison' ? 'block' : 'none';
                 document.getElementById('montagesSection').style.display =
                     tabName === 'montages' ? 'block' : 'none';
             });
@@ -419,15 +417,16 @@ const App = {
         const regularVideos = allVideos.filter(v => !v.is_comparison);
         const comparisonVideos = allVideos.filter(v => v.is_comparison);
 
+        // Build lookup: bib -> comparison video URL
+        const comparisonLookup = {};
+        comparisonVideos.forEach(v => {
+            comparisonLookup[v.bib] = API.getMediaUrl(v.video_url, manifest.event_id);
+        });
+
         // Filter and sort regular videos
         const filteredRegular = Filters.filterVideos(regularVideos);
         const sortedRegular = this.sortVideos(filteredRegular);
-        this.renderVideosGrid(sortedRegular, manifest.event_id, 'videosGrid');
-
-        // Filter and sort comparison videos
-        const filteredComparison = Filters.filterVideos(comparisonVideos);
-        const sortedComparison = this.sortVideos(filteredComparison);
-        this.renderVideosGrid(sortedComparison, manifest.event_id, 'comparisonGrid');
+        this.renderVideosGrid(sortedRegular, manifest.event_id, 'videosGrid', comparisonLookup);
 
         // Render montages
         const montages = manifest.content.montages || [];
@@ -436,11 +435,9 @@ const App = {
 
         // Update counts
         const videoCount = document.getElementById('videoCount');
-        const comparisonCount = document.getElementById('comparisonCount');
         const montageCount = document.getElementById('montageCount');
 
         if (videoCount) videoCount.textContent = `${filteredRegular.length} videos`;
-        if (comparisonCount) comparisonCount.textContent = `${filteredComparison.length} comparison videos`;
         if (montageCount) montageCount.textContent = `${filteredMontages.length} montages`;
 
         // Update sort button active state
@@ -449,13 +446,11 @@ const App = {
 
     sortVideos(videos) {
         switch (this.state.sortBy) {
-            case 'rank':
-                return Filters.sortVideosByRank(videos);
             case 'duration':
                 return Filters.sortVideosByDuration(videos);
-            case 'bib':
+            case 'rank':
             default:
-                return Filters.sortVideosByBib(videos);
+                return Filters.sortVideosByRank(videos);
         }
     },
 
@@ -465,7 +460,7 @@ const App = {
         });
     },
 
-    renderVideosGrid(videos, eventId, containerId = 'videosGrid') {
+    renderVideosGrid(videos, eventId, containerId = 'videosGrid', comparisonLookup = {}) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
@@ -481,8 +476,8 @@ const App = {
 
         container.className = 'video-table-container';
 
-        // Build table
-        const rows = videos.map(video => {
+        // Helper to build a row
+        const buildRow = (video) => {
             // Status display (DSQ/DNF or rank)
             const statusUpper = (video.status || '').toUpperCase();
             const rankDisplay = statusUpper === 'DSQ' ? 'DSQ'
@@ -492,23 +487,53 @@ const App = {
             // Format duration as time (e.g., 29.04s)
             const durationDisplay = video.duration ? `${video.duration.toFixed(2)}s` : '-';
 
+            // Gender abbreviation
+            const genderDisplay = video.gender === 'Women' ? 'F' : 'M';
+
             // Wrap athlete name with USSA profile link if available
             const athleteDisplay = video.ussa_profile_url
                 ? `<a href="${video.ussa_profile_url}" target="_blank" class="athlete-link" onclick="event.stopPropagation()">${video.athlete}</a>`
                 : video.athlete;
 
+            // Check if comparison video exists for this bib
+            const comparisonUrl = comparisonLookup[video.bib] || '';
+            const vsFastestBtn = comparisonUrl
+                ? `<button class="btn btn-sm btn-secondary vs-fastest-btn" data-comparison-url="${comparisonUrl}">vs Fastest</button>`
+                : '';
+
             return `
                 <tr class="video-row" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
                     <td class="col-select"><input type="checkbox" ${Download.isSelected(video.id) ? 'checked' : ''} onclick="event.stopPropagation(); Download.toggle('${video.id}');"></td>
                     <td class="col-rank">${rankDisplay}</td>
+                    <td class="col-athlete">${athleteDisplay} <span class="gender-tag">${genderDisplay}</span></td>
                     <td class="col-bib">${video.bib}</td>
-                    <td class="col-athlete">${athleteDisplay}</td>
                     <td class="col-team">${video.team || '-'}</td>
                     <td class="col-time">${durationDisplay}</td>
-                    <td class="col-play"><button class="btn btn-sm btn-primary play-btn">Play</button></td>
+                    <td class="col-actions">
+                        <button class="btn btn-sm btn-primary play-btn">Play</button>
+                        ${vsFastestBtn}
+                    </td>
                 </tr>
             `;
-        }).join('');
+        };
+
+        // Group by gender when sorting by rank
+        let tableContent = '';
+        if (this.state.sortBy === 'rank') {
+            const women = videos.filter(v => v.gender === 'Women');
+            const men = videos.filter(v => v.gender === 'Men');
+
+            if (women.length > 0) {
+                tableContent += `<tr class="gender-header"><td colspan="7">Women</td></tr>`;
+                tableContent += women.map(buildRow).join('');
+            }
+            if (men.length > 0) {
+                tableContent += `<tr class="gender-header"><td colspan="7">Men</td></tr>`;
+                tableContent += men.map(buildRow).join('');
+            }
+        } else {
+            tableContent = videos.map(buildRow).join('');
+        }
 
         container.innerHTML = `
             <table class="video-table">
@@ -516,38 +541,75 @@ const App = {
                     <tr>
                         <th class="col-select"></th>
                         <th class="col-rank">Rank</th>
-                        <th class="col-bib">Bib</th>
                         <th class="col-athlete">Athlete</th>
+                        <th class="col-bib">Bib</th>
                         <th class="col-team">Team</th>
                         <th class="col-time">Time</th>
-                        <th class="col-play"></th>
+                        <th class="col-actions"></th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${rows}
+                    ${tableContent}
                 </tbody>
             </table>
         `;
 
-        // Add click handlers for rows
-        container.querySelectorAll('.video-row').forEach(row => {
-            row.addEventListener('click', (e) => {
-                // Don't trigger if clicking checkbox
-                if (e.target.type === 'checkbox') return;
-
+        // Add click handlers for Play buttons
+        container.querySelectorAll('.play-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = btn.closest('.video-row');
                 const videoUrl = row.dataset.videoUrl;
                 const video = videos.find(v => v.id === row.dataset.itemId);
 
                 if (video) {
-                    const comparisonUrl = video.comparison_url ?
-                        API.getMediaUrl(video.comparison_url, eventId) : null;
-
                     Player.open(
                         videoUrl,
                         video.athlete,
                         `Bib ${video.bib} • ${video.team} • ${video.category} ${video.gender} • Run ${video.run}`,
                         videoUrl,
-                        comparisonUrl
+                        null
+                    );
+                }
+            });
+        });
+
+        // Add click handlers for vs Fastest buttons
+        container.querySelectorAll('.vs-fastest-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = btn.closest('.video-row');
+                const comparisonUrl = btn.dataset.comparisonUrl;
+                const video = videos.find(v => v.id === row.dataset.itemId);
+
+                if (video && comparisonUrl) {
+                    Player.open(
+                        comparisonUrl,
+                        `${video.athlete} vs Fastest`,
+                        `Bib ${video.bib} • ${video.team} • ${video.category} ${video.gender} • Run ${video.run}`,
+                        comparisonUrl,
+                        null
+                    );
+                }
+            });
+        });
+
+        // Add click handlers for row (clicking anywhere else plays the video)
+        container.querySelectorAll('.video-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                // Don't trigger if clicking checkbox or buttons
+                if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+
+                const videoUrl = row.dataset.videoUrl;
+                const video = videos.find(v => v.id === row.dataset.itemId);
+
+                if (video) {
+                    Player.open(
+                        videoUrl,
+                        video.athlete,
+                        `Bib ${video.bib} • ${video.team} • ${video.category} ${video.gender} • Run ${video.run}`,
+                        videoUrl,
+                        null
                     );
                 }
             });

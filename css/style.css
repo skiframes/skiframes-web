@@ -681,21 +681,42 @@ body {
 
 .col-team {
     width: 80px;
+    padding-right: 24px;
 }
 
 .col-time {
-    width: 80px;
+    width: 100px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
 
-.col-play {
-    width: 80px;
-    text-align: center;
+.col-actions {
+    width: 180px;
+    text-align: right;
 }
 
-.play-btn {
-    padding: 6px 14px;
+.col-actions button {
+    padding: 6px 12px;
+    margin-left: 6px;
+}
+
+.vs-fastest-btn {
+    font-size: 12px;
+}
+
+.gender-tag {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.gender-header td {
+    background: var(--background);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
 }
 
 /* Montage Card */
