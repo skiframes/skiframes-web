@@ -210,8 +210,8 @@
                     <button id="frameBack" class="btn btn-sm">← Frame</button>
                     <button id="frameForward" class="btn btn-sm">Frame →</button>
                     <span class="divider"></span>
-                    <a id="downloadVideo" href="" download class="btn btn-primary btn-sm">Download</a>
-                    <a id="downloadComparison" href="" download class="btn btn-secondary btn-sm" style="display: none;">Download Comparison</a>
+                    <button id="downloadVideo" class="btn btn-primary btn-sm" onclick="Player.downloadVideo()">Download</button>
+                    <button id="downloadComparison" class="btn btn-secondary btn-sm" style="display: none;" onclick="Player.downloadComparisonVideo()">Download Comparison</button>
                 </div>
             </div>
         </div>
@@ -245,8 +245,21 @@
     <footer class="footer">
         <div class="footer-content">
             <p>&copy; 2026 Skiframes. Video analytics for alpine ski racing.</p>
+            <p class="footer-links">
+                <a href="https://github.com/skiframes">GitHub</a>
+                <span class="separator">•</span>
+                <a href="#" id="contactLink" onclick="return revealEmail(this)">Contact</a>
+            </p>
         </div>
     </footer>
+    <script>
+    // Obfuscated email to prevent spam crawlers
+    function revealEmail(el) {
+        var u = 'avillach'; var d = 'mac.com';
+        el.href = 'mail' + 'to:' + u + '@' + d;
+        return true;
+    }
+    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="js/api.js"></script>

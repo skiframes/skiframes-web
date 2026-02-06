@@ -15,11 +15,19 @@ const Player = {
         this.setupKeyboardControls();
     },
 
+    // Store current URLs for download
+    currentVideoUrl: null,
+    currentComparisonUrl: null,
+
     /**
      * Open video in modal
      */
     open(videoUrl, title, meta, downloadUrl, comparisonUrl = null) {
         if (!this.video || !this.modal) return;
+
+        // Store URLs for download
+        this.currentVideoUrl = downloadUrl || videoUrl;
+        this.currentComparisonUrl = comparisonUrl;
 
         // Set video source
         this.video.src = videoUrl;
@@ -28,17 +36,11 @@ const Player = {
         // Set info
         document.getElementById('videoTitle').textContent = title;
         document.getElementById('videoMeta').textContent = meta;
-        document.getElementById('downloadVideo').href = downloadUrl || videoUrl;
 
-        // Handle comparison download button
+        // Handle comparison download button visibility
         const comparisonBtn = document.getElementById('downloadComparison');
         if (comparisonBtn) {
-            if (comparisonUrl) {
-                comparisonBtn.href = comparisonUrl;
-                comparisonBtn.style.display = 'inline-flex';
-            } else {
-                comparisonBtn.style.display = 'none';
-            }
+            comparisonBtn.style.display = comparisonUrl ? 'inline-flex' : 'none';
         }
 
         // Show modal
@@ -62,6 +64,24 @@ const Player = {
         this.video.src = '';
         this.modal.style.display = 'none';
         document.body.style.overflow = '';
+    },
+
+    /**
+     * Download current video using fetch+blob to force download
+     */
+    downloadVideo() {
+        if (this.currentVideoUrl) {
+            Download.downloadSingle(this.currentVideoUrl);
+        }
+    },
+
+    /**
+     * Download comparison video using fetch+blob to force download
+     */
+    downloadComparisonVideo() {
+        if (this.currentComparisonUrl) {
+            Download.downloadSingle(this.currentComparisonUrl);
+        }
     },
 
     /**
