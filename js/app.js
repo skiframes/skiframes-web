@@ -142,10 +142,12 @@ const App = {
             return;
         }
 
-        container.innerHTML = events.map(event => `
+        container.innerHTML = events.map(event => {
+            const logoUrl = event.logo_url ? API.getMediaUrl(event.logo_url) : '';
+            return `
             <a href="event.html?event=${event.event_id}" class="event-card">
                 <div class="event-card-image">
-                    ${event.thumb_url ? `<img src="${event.thumb_url}" alt="${event.event_name}">` : ''}
+                    ${logoUrl ? `<img src="${logoUrl}" alt="${event.event_name}" class="event-card-logo">` : ''}
                     <span class="event-badge ${event.event_type}">${event.event_type}</span>
                 </div>
                 <div class="event-card-content">
@@ -158,7 +160,7 @@ const App = {
                     </div>
                 </div>
             </a>
-        `).join('');
+        `}).join('');
     },
 
     // ========================================

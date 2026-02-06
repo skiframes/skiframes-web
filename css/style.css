@@ -319,6 +319,12 @@ body {
     object-fit: cover;
 }
 
+.event-card-image img.event-card-logo {
+    width: auto;
+    height: 140px;
+    object-fit: contain;
+}
+
 .event-badge {
     position: absolute;
     top: 12px;
