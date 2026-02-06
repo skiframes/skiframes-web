@@ -69,18 +69,39 @@ const Player = {
     /**
      * Download current video using fetch+blob to force download
      */
-    downloadVideo() {
+    async downloadVideo() {
         if (this.currentVideoUrl) {
-            Download.downloadSingle(this.currentVideoUrl);
+            const btn = document.getElementById('downloadVideo');
+            await this.downloadWithFeedback(btn, this.currentVideoUrl);
         }
     },
 
     /**
      * Download comparison video using fetch+blob to force download
      */
-    downloadComparisonVideo() {
+    async downloadComparisonVideo() {
         if (this.currentComparisonUrl) {
-            Download.downloadSingle(this.currentComparisonUrl);
+            const btn = document.getElementById('downloadComparison');
+            await this.downloadWithFeedback(btn, this.currentComparisonUrl);
+        }
+    },
+
+    /**
+     * Download with visual feedback on button
+     */
+    async downloadWithFeedback(btn, url) {
+        if (!btn) return;
+        const originalText = btn.textContent;
+        btn.textContent = 'Downloading...';
+        btn.classList.add('btn-downloading');
+        btn.disabled = true;
+
+        try {
+            await Download.downloadSingle(url);
+        } finally {
+            btn.textContent = originalText;
+            btn.classList.remove('btn-downloading');
+            btn.disabled = false;
         }
     },
 

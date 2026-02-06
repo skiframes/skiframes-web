@@ -185,6 +185,12 @@ body {
     cursor: not-allowed;
 }
 
+.btn-downloading {
+    background: var(--warning) !important;
+    color: white !important;
+    cursor: wait !important;
+}
+
 /* ========================================
    Filters Bar
    ======================================== */
