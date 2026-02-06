@@ -497,21 +497,22 @@ const App = {
 
             // Check if comparison video exists for this bib
             const comparisonUrl = comparisonLookup[video.bib] || '';
-            const vsFastestBtn = comparisonUrl
-                ? `<button class="btn btn-sm btn-secondary vs-fastest-btn" data-comparison-url="${comparisonUrl}">vs Fastest</button>`
+            const ghostRaceBtn = comparisonUrl
+                ? `<button class="btn btn-sm btn-ghost ghost-race-btn" data-comparison-url="${comparisonUrl}">Ghost Race</button>`
                 : '';
 
             return `
                 <tr class="video-row" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
                     <td class="col-select"><input type="checkbox" ${Download.isSelected(video.id) ? 'checked' : ''} onclick="event.stopPropagation(); Download.toggle('${video.id}');"></td>
                     <td class="col-rank">${rankDisplay}</td>
-                    <td class="col-athlete">${athleteDisplay} <span class="gender-tag">${genderDisplay}</span></td>
+                    <td class="col-athlete">${athleteDisplay}</td>
+                    <td class="col-gender">${genderDisplay}</td>
                     <td class="col-bib">${video.bib}</td>
                     <td class="col-team">${video.team || '-'}</td>
                     <td class="col-time">${durationDisplay}</td>
                     <td class="col-actions">
                         <button class="btn btn-sm btn-primary play-btn">Play</button>
-                        ${vsFastestBtn}
+                        ${ghostRaceBtn}
                     </td>
                 </tr>
             `;
@@ -524,11 +525,11 @@ const App = {
             const men = videos.filter(v => v.gender === 'Men');
 
             if (women.length > 0) {
-                tableContent += `<tr class="gender-header"><td colspan="7">Women</td></tr>`;
+                tableContent += `<tr class="gender-header"><td colspan="8">Women</td></tr>`;
                 tableContent += women.map(buildRow).join('');
             }
             if (men.length > 0) {
-                tableContent += `<tr class="gender-header"><td colspan="7">Men</td></tr>`;
+                tableContent += `<tr class="gender-header"><td colspan="8">Men</td></tr>`;
                 tableContent += men.map(buildRow).join('');
             }
         } else {
@@ -542,6 +543,7 @@ const App = {
                         <th class="col-select"></th>
                         <th class="col-rank">Rank</th>
                         <th class="col-athlete">Athlete</th>
+                        <th class="col-gender">Gender</th>
                         <th class="col-bib">Bib</th>
                         <th class="col-team">Team</th>
                         <th class="col-time">Time</th>
@@ -574,8 +576,8 @@ const App = {
             });
         });
 
-        // Add click handlers for vs Fastest buttons
-        container.querySelectorAll('.vs-fastest-btn').forEach(btn => {
+        // Add click handlers for Ghost Race buttons
+        container.querySelectorAll('.ghost-race-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const row = btn.closest('.video-row');
@@ -585,7 +587,7 @@ const App = {
                 if (video && comparisonUrl) {
                     Player.open(
                         comparisonUrl,
-                        `${video.athlete} vs Fastest`,
+                        `${video.athlete} - Ghost Race`,
                         `Bib ${video.bib} • ${video.team} • ${video.category} ${video.gender} • Run ${video.run}`,
                         comparisonUrl,
                         null
@@ -685,9 +687,9 @@ const App = {
             }
         };
 
+        setupSpeedBtn('speed025', 0.25);
         setupSpeedBtn('speedDown', 0.5);
         setupSpeedBtn('speedNormal', 1);
-        setupSpeedBtn('speedUp', 2);
 
         const frameBackBtn = document.getElementById('frameBack');
         const frameForwardBtn = document.getElementById('frameForward');

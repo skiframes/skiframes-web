@@ -113,7 +113,7 @@ const Player = {
         this.video.playbackRate = speed;
 
         // Update UI buttons
-        const speeds = { 0.25: 'speed025', 0.5: 'speedDown', 1: 'speedNormal', 2: 'speedUp' };
+        const speeds = { 0.25: 'speed025', 0.5: 'speedDown', 1: 'speedNormal' };
         Object.entries(speeds).forEach(([s, id]) => {
             const btn = document.getElementById(id);
             if (btn) {

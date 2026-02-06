@@ -679,13 +679,24 @@ body {
     font-weight: 500;
 }
 
+.col-gender {
+    width: 50px;
+    padding-right: 20px;
+}
+
+.col-bib {
+    width: 60px;
+    padding-right: 20px;
+}
+
 .col-team {
     width: 80px;
-    padding-right: 24px;
+    padding-right: 30px;
 }
 
 .col-time {
     width: 100px;
+    padding-right: 20px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
@@ -700,23 +711,31 @@ body {
     margin-left: 6px;
 }
 
-.vs-fastest-btn {
-    font-size: 12px;
+.btn-ghost {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    border: none;
 }
 
-.gender-tag {
-    color: var(--text-secondary);
+.btn-ghost:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.ghost-race-btn {
     font-size: 12px;
-    margin-left: 6px;
 }
 
 .gender-header td {
-    background: var(--background);
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text);
-    padding: 12px 16px;
-    border-bottom: 2px solid var(--border);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    font-weight: 800;
+    font-size: 24px;
+    color: white;
+    padding: 20px 24px;
+    border-bottom: none;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* Montage Card */
