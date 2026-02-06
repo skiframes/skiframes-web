@@ -762,6 +762,21 @@ body {
     font-weight: 500;
 }
 
+.col-ussa {
+    width: 50px;
+}
+
+.ussa-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ussa-link:hover {
+    text-decoration: underline;
+}
+
 .col-gender {
     width: 50px;
     padding-right: 20px;

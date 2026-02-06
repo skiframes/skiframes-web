@@ -610,7 +610,7 @@ const App = {
         container.className = 'video-table-container';
 
         const showRankColumn = this.state.sortBy === 'rank';
-        const colSpan = showRankColumn ? 8 : 7;
+        const colSpan = showRankColumn ? 9 : 8;
 
         // Calculate ranks per gender based on duration (client-side ranking)
         const calculateRanks = (videoList) => {
@@ -666,10 +666,10 @@ const App = {
             // Gender abbreviation
             const genderDisplay = video.gender === 'Women' ? 'F' : 'M';
 
-            // Wrap athlete name with USSA profile link if available
-            const athleteDisplay = video.ussa_profile_url
-                ? `<a href="${video.ussa_profile_url}" target="_blank" class="athlete-link" onclick="event.stopPropagation()">${video.athlete}</a>`
-                : video.athlete;
+            // USSA profile link in separate column
+            const ussaLink = video.ussa_profile_url
+                ? `<a href="${video.ussa_profile_url}" target="_blank" class="ussa-link" onclick="event.stopPropagation()">USSA</a>`
+                : '';
 
             // Check if comparison video exists for this bib
             const comparisonUrl = comparisonLookup[video.bib] || '';
@@ -683,7 +683,8 @@ const App = {
                 <tr class="video-row" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
                     <td class="col-select"><input type="checkbox" ${Download.isSelected(video.id) ? 'checked' : ''} onclick="event.stopPropagation(); Download.toggle('${video.id}');"></td>
                     ${rankCell}
-                    <td class="col-athlete">${athleteDisplay}</td>
+                    <td class="col-athlete">${video.athlete}</td>
+                    <td class="col-ussa">${ussaLink}</td>
                     <td class="col-gender">${genderDisplay}</td>
                     <td class="col-bib">${video.bib}</td>
                     <td class="col-team">${video.team || '-'}</td>
@@ -730,6 +731,7 @@ const App = {
                         <th class="col-select"></th>
                         ${rankHeader}
                         <th class="col-athlete">Athlete</th>
+                        <th class="col-ussa"></th>
                         <th class="col-gender">Gender</th>
                         <th class="col-bib">Bib</th>
                         <th class="col-team">Team</th>
