@@ -609,17 +609,58 @@ const App = {
 
         container.className = 'video-table-container';
 
+        const showRankColumn = this.state.sortBy === 'rank';
+        const colSpan = showRankColumn ? 8 : 7;
+
+        // Calculate ranks per gender based on duration (client-side ranking)
+        const calculateRanks = (videoList) => {
+            const rankMap = {};
+            ['Women', 'Men'].forEach(gender => {
+                const genderVideos = videoList.filter(v => v.gender === gender);
+                // Filter to only videos with valid duration and not affected by DNF/DSQ for this run
+                const rankable = genderVideos.filter(v => {
+                    const statusUpper = (v.status || '').toUpperCase();
+                    const statusMatch = statusUpper.match(/^(DNF|DSQ)(\d+)?$/);
+                    const statusType = statusMatch ? statusMatch[1] : null;
+                    const statusRun = statusMatch && statusMatch[2] ? parseInt(statusMatch[2]) : null;
+                    const isAffected = statusType && (statusRun === null || statusRun === v.run);
+                    return v.duration && !isAffected;
+                });
+                // Sort by duration
+                rankable.sort((a, b) => a.duration - b.duration);
+                // Assign ranks
+                rankable.forEach((v, idx) => {
+                    rankMap[v.id] = idx + 1;
+                });
+            });
+            return rankMap;
+        };
+
+        const rankMap = calculateRanks(videos);
+
         // Helper to build a row
         const buildRow = (video) => {
-            // Status display (DSQ/DNF or rank)
+            // Parse status to extract type and run number (e.g., "DNF1" -> {type: "DNF", run: 1})
             const statusUpper = (video.status || '').toUpperCase();
-            const rankDisplay = statusUpper === 'DSQ' ? 'DSQ'
-                : statusUpper === 'DNF' ? 'DNF'
-                : video.rank ? `#${video.rank}` : '-';
+            const statusMatch = statusUpper.match(/^(DNF|DSQ)(\d+)?$/);
+            const statusType = statusMatch ? statusMatch[1] : null; // "DNF" or "DSQ"
+            const statusRun = statusMatch && statusMatch[2] ? parseInt(statusMatch[2]) : null;
 
-            // Format duration as time (e.g., 29.04s), or show DNF/DSQ status
-            const durationDisplay = (statusUpper === 'DNF' || statusUpper === 'DSQ')
-                ? statusUpper
+            // Check if this video's run is affected by the status
+            // If statusRun is null (legacy format like "DNF"), it affects all runs
+            // If statusRun matches video.run, this run is affected
+            const isAffectedByStatus = statusType && (statusRun === null || statusRun === video.run);
+
+            // Get display status (full string like DNF1, DSQ2, or legacy DNF/DSQ)
+            const displayStatus = statusUpper || statusType;
+
+            // Rank display: show full status if affected, otherwise show calculated rank
+            const calculatedRank = rankMap[video.id];
+            const rankDisplay = isAffectedByStatus ? displayStatus : (calculatedRank ? `#${calculatedRank}` : '-');
+
+            // Duration display: show full status if affected, otherwise show time
+            const durationDisplay = isAffectedByStatus
+                ? displayStatus
                 : video.duration ? `${video.duration.toFixed(2)}s` : '-';
 
             // Gender abbreviation
@@ -636,10 +677,12 @@ const App = {
                 ? `<button class="btn btn-sm btn-ghost ghost-race-btn" data-comparison-url="${comparisonUrl}">Ghost Race</button>`
                 : '';
 
+            const rankCell = showRankColumn ? `<td class="col-rank">${rankDisplay}</td>` : '';
+
             return `
                 <tr class="video-row" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
                     <td class="col-select"><input type="checkbox" ${Download.isSelected(video.id) ? 'checked' : ''} onclick="event.stopPropagation(); Download.toggle('${video.id}');"></td>
-                    <td class="col-rank">${rankDisplay}</td>
+                    ${rankCell}
                     <td class="col-athlete">${athleteDisplay}</td>
                     <td class="col-gender">${genderDisplay}</td>
                     <td class="col-bib">${video.bib}</td>
@@ -653,30 +696,39 @@ const App = {
             `;
         };
 
+        // Helper to sort by calculated rank (DNF/DSQ go to bottom)
+        const sortByRank = (a, b) => {
+            const rankA = rankMap[a.id] || Infinity;
+            const rankB = rankMap[b.id] || Infinity;
+            return rankA - rankB;
+        };
+
         // Group by gender when sorting by rank
         let tableContent = '';
         if (this.state.sortBy === 'rank') {
-            const women = videos.filter(v => v.gender === 'Women');
-            const men = videos.filter(v => v.gender === 'Men');
+            const women = videos.filter(v => v.gender === 'Women').sort(sortByRank);
+            const men = videos.filter(v => v.gender === 'Men').sort(sortByRank);
 
             if (women.length > 0) {
-                tableContent += `<tr class="gender-header"><td colspan="8">Women</td></tr>`;
+                tableContent += `<tr class="gender-header"><td colspan="${colSpan}">Women</td></tr>`;
                 tableContent += women.map(buildRow).join('');
             }
             if (men.length > 0) {
-                tableContent += `<tr class="gender-header"><td colspan="8">Men</td></tr>`;
+                tableContent += `<tr class="gender-header"><td colspan="${colSpan}">Men</td></tr>`;
                 tableContent += men.map(buildRow).join('');
             }
         } else {
             tableContent = videos.map(buildRow).join('');
         }
 
+        const rankHeader = showRankColumn ? '<th class="col-rank">Run Rank</th>' : '';
+
         container.innerHTML = `
             <table class="video-table">
                 <thead>
                     <tr>
                         <th class="col-select"></th>
-                        <th class="col-rank">Run Rank</th>
+                        ${rankHeader}
                         <th class="col-athlete">Athlete</th>
                         <th class="col-gender">Gender</th>
                         <th class="col-bib">Bib</th>
