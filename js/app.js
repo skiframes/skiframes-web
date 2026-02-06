@@ -7,7 +7,6 @@ const App = {
     state: {
         events: [],
         currentEvent: null,
-        view: 'grid', // 'grid' or 'list'
         sortBy: 'bib' // 'bib', 'rank', or 'duration'
     },
 
@@ -322,33 +321,6 @@ const App = {
             });
         });
 
-        // View toggle - setup for all view buttons
-        const viewButtons = [
-            { grid: 'gridView', list: 'listView' },
-            { grid: 'gridViewComparison', list: 'listViewComparison' }
-        ];
-
-        const allGridBtns = viewButtons.map(v => document.getElementById(v.grid)).filter(Boolean);
-        const allListBtns = viewButtons.map(v => document.getElementById(v.list)).filter(Boolean);
-
-        allGridBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.state.view = 'grid';
-                allGridBtns.forEach(b => b.classList.add('active'));
-                allListBtns.forEach(b => b.classList.remove('active'));
-                this.renderEventContent();
-            });
-        });
-
-        allListBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.state.view = 'list';
-                allListBtns.forEach(b => b.classList.add('active'));
-                allGridBtns.forEach(b => b.classList.remove('active'));
-                this.renderEventContent();
-            });
-        });
-
         // Sort buttons
         document.querySelectorAll('.sort-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -507,54 +479,64 @@ const App = {
             return;
         }
 
-        container.className = `content-grid ${this.state.view === 'list' ? 'list-view' : ''}`;
+        container.className = 'video-table-container';
 
-        container.innerHTML = videos.map(video => {
-            const teamDisplay = video.team ? `${video.team} • ` : '';
-            // Show DSQ/DNF or Run Rank
-            const rankDisplay = video.status === 'dsq' ? 'DSQ • '
-                : video.status === 'dnf' ? 'DNF • '
-                : video.rank ? `Run Rank #${video.rank} • ` : '';
+        // Build table
+        const rows = videos.map(video => {
+            // Status display (DSQ/DNF or rank)
+            const statusUpper = (video.status || '').toUpperCase();
+            const rankDisplay = statusUpper === 'DSQ' ? 'DSQ'
+                : statusUpper === 'DNF' ? 'DNF'
+                : video.rank ? `#${video.rank}` : '-';
+
             // Format duration as time (e.g., 29.04s)
-            const durationDisplay = video.duration ? `${video.duration.toFixed(2)}s` : '';
-            // Only show "vs Fastest" badge on comparison videos
-            const comparisonBadge = video.is_comparison
-                ? '<span class="video-comparison-badge">vs Fastest</span>'
-                : '';
+            const durationDisplay = video.duration ? `${video.duration.toFixed(2)}s` : '-';
+
             // Wrap athlete name with USSA profile link if available
             const athleteDisplay = video.ussa_profile_url
                 ? `<a href="${video.ussa_profile_url}" target="_blank" class="athlete-link" onclick="event.stopPropagation()">${video.athlete}</a>`
                 : video.athlete;
 
             return `
-            <div class="video-card" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
-                <div class="video-thumbnail">
-                    <input type="checkbox" class="video-card-checkbox"
-                           ${Download.isSelected(video.id) ? 'checked' : ''}
-                           onclick="event.stopPropagation(); Download.toggle('${video.id}');">
-                    ${video.thumb_url ? `<img src="${API.getMediaUrl(video.thumb_url, eventId)}" alt="${video.athlete}">` : ''}
-                    <span class="video-duration">${Player.formatDuration(video.duration)}</span>
-                    ${comparisonBadge}
-                </div>
-                <div class="video-card-content">
-                    <h4>${athleteDisplay}</h4>
-                    <p class="video-card-meta">
-                        ${rankDisplay}Bib ${video.bib} • ${teamDisplay}${video.category} ${video.gender} • Run ${video.run}
-                    </p>
-                    <p class="video-card-time">${durationDisplay}</p>
-                </div>
-            </div>
-        `;
+                <tr class="video-row" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
+                    <td class="col-select"><input type="checkbox" ${Download.isSelected(video.id) ? 'checked' : ''} onclick="event.stopPropagation(); Download.toggle('${video.id}');"></td>
+                    <td class="col-rank">${rankDisplay}</td>
+                    <td class="col-bib">${video.bib}</td>
+                    <td class="col-athlete">${athleteDisplay}</td>
+                    <td class="col-team">${video.team || '-'}</td>
+                    <td class="col-time">${durationDisplay}</td>
+                    <td class="col-play"><button class="btn btn-sm btn-primary play-btn">Play</button></td>
+                </tr>
+            `;
         }).join('');
 
-        // Add click handlers for video cards
-        container.querySelectorAll('.video-card').forEach(card => {
-            card.addEventListener('click', (e) => {
+        container.innerHTML = `
+            <table class="video-table">
+                <thead>
+                    <tr>
+                        <th class="col-select"></th>
+                        <th class="col-rank">Rank</th>
+                        <th class="col-bib">Bib</th>
+                        <th class="col-athlete">Athlete</th>
+                        <th class="col-team">Team</th>
+                        <th class="col-time">Time</th>
+                        <th class="col-play"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        `;
+
+        // Add click handlers for rows
+        container.querySelectorAll('.video-row').forEach(row => {
+            row.addEventListener('click', (e) => {
                 // Don't trigger if clicking checkbox
                 if (e.target.type === 'checkbox') return;
 
-                const videoUrl = card.dataset.videoUrl;
-                const video = videos.find(v => v.id === card.dataset.itemId);
+                const videoUrl = row.dataset.videoUrl;
+                const video = videos.find(v => v.id === row.dataset.itemId);
 
                 if (video) {
                     const comparisonUrl = video.comparison_url ?

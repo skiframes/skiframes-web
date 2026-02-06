@@ -114,6 +114,11 @@ const Filters = {
      */
     filterVideos(videos) {
         return videos.filter(video => {
+            // Exclude DNS (Did Not Start) racers
+            if ((video.status || '').toUpperCase() === 'DNS') {
+                return false;
+            }
+
             // Team filter
             if (this.state.team && video.team !== this.state.team) {
                 return false;
@@ -208,19 +213,39 @@ const Filters = {
     },
 
     /**
-     * Sort videos by duration (fastest first)
+     * Check if a video has DSQ/DNF status
+     */
+    isDsqDnf(video) {
+        const status = (video.status || '').toUpperCase();
+        return status === 'DSQ' || status === 'DNF';
+    },
+
+    /**
+     * Sort videos by duration (fastest first), DSQ/DNF always at end
      */
     sortVideosByDuration(videos, ascending = true) {
         return [...videos].sort((a, b) => {
+            const aDsq = this.isDsqDnf(a);
+            const bDsq = this.isDsqDnf(b);
+            // DSQ/DNF always at the end
+            if (aDsq && !bDsq) return 1;
+            if (!aDsq && bDsq) return -1;
+            if (aDsq && bDsq) return a.bib - b.bib; // Sort DSQ/DNF by bib
             return ascending ? a.duration - b.duration : b.duration - a.duration;
         });
     },
 
     /**
-     * Sort videos by rank (best rank first)
+     * Sort videos by rank (best rank first), DSQ/DNF always at end
      */
     sortVideosByRank(videos, ascending = true) {
         return [...videos].sort((a, b) => {
+            const aDsq = this.isDsqDnf(a);
+            const bDsq = this.isDsqDnf(b);
+            // DSQ/DNF always at the end
+            if (aDsq && !bDsq) return 1;
+            if (!aDsq && bDsq) return -1;
+            if (aDsq && bDsq) return a.bib - b.bib; // Sort DSQ/DNF by bib
             const rankA = a.rank || 999;
             const rankB = b.rank || 999;
             return ascending ? rankA - rankB : rankB - rankA;
