@@ -692,7 +692,7 @@ const App = {
                 <thead>
                     <tr>
                         <th class="col-select"></th>
-                        <th class="col-rank">Rank</th>
+                        <th class="col-rank">Run Rank</th>
                         <th class="col-athlete">Athlete</th>
                         <th class="col-gender">Gender</th>
                         <th class="col-bib">Bib</th>
