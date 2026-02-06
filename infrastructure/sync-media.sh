@@ -48,67 +48,136 @@ echo "Source: $SOURCE_DIR"
 echo "Event ID: $EVENT_ID"
 echo "Destination: s3://$BUCKET_NAME/events/$EVENT_ID/"
 
+# Check for session_manifest.json (photo-montages format) and rename to manifest.json
+SESSION_MANIFEST="$SOURCE_DIR/session_manifest.json"
+MANIFEST_PATH="$SOURCE_DIR/manifest.json"
+
+if [ -f "$SESSION_MANIFEST" ] && [ ! -f "$MANIFEST_PATH" ]; then
+    echo -e "${YELLOW}Found session_manifest.json, copying to manifest.json...${NC}"
+    cp "$SESSION_MANIFEST" "$MANIFEST_PATH"
+fi
+
 # Sync all files
 aws s3 sync "$SOURCE_DIR" "s3://$BUCKET_NAME/events/$EVENT_ID/" \
     --exclude ".DS_Store" \
     --exclude "*.txt" \
+    --exclude "*.log" \
+    --exclude "session_manifest.json" \
     --region "$REGION"
 
-# Generate manifest if it doesn't exist
-MANIFEST_PATH="$SOURCE_DIR/manifest.json"
-if [ ! -f "$MANIFEST_PATH" ]; then
-    echo -e "${YELLOW}Generating manifest.json...${NC}"
-
-    # Count files
-    VIDEO_COUNT=$(find "$SOURCE_DIR" -name "*.mp4" | wc -l | tr -d ' ')
-    MONTAGE_COUNT=$(find "$SOURCE_DIR" -name "*_full.jpg" | wc -l | tr -d ' ')
-
-    # Extract date from event_id
-    EVENT_DATE=$(echo "$EVENT_ID" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-
-    # Create basic manifest
-    cat > "$MANIFEST_PATH" << EOF
-{
-  "event_id": "$EVENT_ID",
-  "event_name": "$EVENT_ID",
-  "event_date": "$EVENT_DATE",
-  "event_type": "race",
-  "location": "Ragged Mountain, NH",
-  "teams": [],
-  "categories": [],
-  "content": {
-    "videos": [],
-    "montages": []
-  },
-  "video_count": $VIDEO_COUNT,
-  "montage_count": $MONTAGE_COUNT,
-  "generated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-}
-EOF
-
-    echo "Created basic manifest. Please update with full content details."
+# Upload manifest with proper content type
+if [ -f "$MANIFEST_PATH" ]; then
+    echo -e "${YELLOW}Uploading manifest.json...${NC}"
+    aws s3 cp "$MANIFEST_PATH" "s3://$BUCKET_NAME/events/$EVENT_ID/manifest.json" \
+        --content-type "application/json" \
+        --cache-control "max-age=60" \
+        --region "$REGION"
+else
+    echo -e "${RED}No manifest.json found! Create one or ensure session_manifest.json exists.${NC}"
+    exit 1
 fi
 
-# Upload manifest
-aws s3 cp "$MANIFEST_PATH" "s3://$BUCKET_NAME/events/$EVENT_ID/manifest.json" \
-    --content-type "application/json" \
-    --cache-control "max-age=60" \
-    --region "$REGION"
+# Extract event info from manifest for index update
+EVENT_NAME=$(python3 -c "
+import json
+try:
+    with open('$MANIFEST_PATH') as f:
+        m = json.load(f)
+    race = m.get('race', {})
+    name = ' - '.join(filter(None, [race.get('event'), race.get('age_group'), race.get('discipline'), race.get('run')]))
+    print(name or m.get('event_name', '$EVENT_ID'))
+except:
+    print('$EVENT_ID')
+" 2>/dev/null)
+
+EVENT_DATE=$(python3 -c "
+import json
+try:
+    with open('$MANIFEST_PATH') as f:
+        m = json.load(f)
+    print(m.get('race', {}).get('date') or m.get('event_date') or '$EVENT_ID'.split('_')[0])
+except:
+    print('$EVENT_ID'.split('_')[0])
+" 2>/dev/null)
+
+VIDEO_COUNT=$(python3 -c "
+import json
+try:
+    with open('$MANIFEST_PATH') as f:
+        m = json.load(f)
+    videos = m.get('videos', m.get('content', {}).get('videos', []))
+    # Count non-comparison videos
+    print(len([v for v in videos if not v.get('is_comparison', False)]))
+except:
+    print(0)
+" 2>/dev/null)
+
+TEAMS=$(python3 -c "
+import json
+try:
+    with open('$MANIFEST_PATH') as f:
+        m = json.load(f)
+    videos = m.get('videos', m.get('content', {}).get('videos', []))
+    teams = list(set(v.get('team') for v in videos if v.get('team')))
+    print(json.dumps(teams))
+except:
+    print('[]')
+" 2>/dev/null)
 
 # Update root index.json
 echo -e "${YELLOW}Updating root index.json...${NC}"
 
-# Download current index or create new one
 INDEX_PATH="/tmp/skiframes_index.json"
 aws s3 cp "s3://$BUCKET_NAME/index.json" "$INDEX_PATH" 2>/dev/null || echo '{"events":[],"last_updated":""}' > "$INDEX_PATH"
 
-# Add event to index if not present (simple check)
-if ! grep -q "\"$EVENT_ID\"" "$INDEX_PATH"; then
-    echo "Adding $EVENT_ID to index..."
-    # This is a simple approach - for production, use jq or Python
-    # For now, we'll just note that manual update may be needed
-    echo -e "${YELLOW}Note: You may need to manually update index.json to add this event.${NC}"
-fi
+# Update index using Python
+python3 << EOF
+import json
+from datetime import datetime
+
+with open('$INDEX_PATH', 'r') as f:
+    index = json.load(f)
+
+event_id = '$EVENT_ID'
+event_name = '$EVENT_NAME'
+event_date = '$EVENT_DATE'
+video_count = int('$VIDEO_COUNT' or 0)
+teams = json.loads('$TEAMS')
+
+# Convert old string format to object format if needed
+if index['events'] and isinstance(index['events'][0], str):
+    index['events'] = [{'event_id': e, 'event_name': e, 'event_date': e.split('_')[0]} for e in index['events']]
+
+# Check if event already exists
+existing = next((e for e in index['events'] if e.get('event_id') == event_id), None)
+
+if existing:
+    # Update existing event
+    existing['event_name'] = event_name
+    existing['event_date'] = event_date
+    existing['video_count'] = video_count
+    existing['teams'] = teams
+    print(f"Updated {event_id} in index")
+else:
+    # Add new event
+    index['events'].append({
+        'event_id': event_id,
+        'event_name': event_name,
+        'event_date': event_date,
+        'event_type': 'race',
+        'location': 'Ragged Mountain, NH',
+        'video_count': video_count,
+        'teams': teams
+    })
+    print(f"Added {event_id} to index")
+
+# Sort by date descending
+index['events'].sort(key=lambda x: x.get('event_date', ''), reverse=True)
+index['last_updated'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+with open('$INDEX_PATH', 'w') as f:
+    json.dump(index, f, indent=2)
+EOF
 
 # Upload updated index
 aws s3 cp "$INDEX_PATH" "s3://$BUCKET_NAME/index.json" \
@@ -117,4 +186,7 @@ aws s3 cp "$INDEX_PATH" "s3://$BUCKET_NAME/index.json" \
     --region "$REGION"
 
 echo -e "${GREEN}Sync complete!${NC}"
+echo "Event: $EVENT_NAME"
+echo "Videos: $VIDEO_COUNT"
 echo "Media URL: https://media.skiframes.com/events/$EVENT_ID/"
+echo "View at: https://skiframes.com/event.html?event=$EVENT_ID"

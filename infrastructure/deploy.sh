@@ -61,6 +61,16 @@ aws s3 cp "s3://$BUCKET_NAME" "s3://$BUCKET_NAME" \
     --recursive \
     --region "$REGION"
 
+# Set cache for JS files (need to update when code changes)
+aws s3 cp "s3://$BUCKET_NAME" "s3://$BUCKET_NAME" \
+    --exclude "*" \
+    --include "*.js" \
+    --metadata-directive REPLACE \
+    --cache-control "max-age=300" \
+    --content-type "application/javascript" \
+    --recursive \
+    --region "$REGION"
+
 # Invalidate CloudFront cache
 if [ -n "$DISTRIBUTION_ID" ]; then
     echo -e "${YELLOW}Invalidating CloudFront cache...${NC}"

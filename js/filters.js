@@ -135,7 +135,10 @@ const Filters = {
             }
 
             // Content type filter
-            if (this.state.contentType === 'comparison' && !video.comparison_url) {
+            if (this.state.contentType === 'videos' && video.is_comparison) {
+                return false;
+            }
+            if (this.state.contentType === 'comparison' && !video.is_comparison) {
                 return false;
             }
 
@@ -210,6 +213,17 @@ const Filters = {
     sortVideosByDuration(videos, ascending = true) {
         return [...videos].sort((a, b) => {
             return ascending ? a.duration - b.duration : b.duration - a.duration;
+        });
+    },
+
+    /**
+     * Sort videos by rank (best rank first)
+     */
+    sortVideosByRank(videos, ascending = true) {
+        return [...videos].sort((a, b) => {
+            const rankA = a.rank || 999;
+            const rankB = b.rank || 999;
+            return ascending ? rankA - rankB : rankB - rankA;
         });
     },
 

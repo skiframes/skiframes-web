@@ -31,7 +31,8 @@ const API = {
         try {
             const response = await fetch(`${this.MEDIA_BASE}/events/${eventId}/manifest.json`);
             if (!response.ok) throw new Error('Failed to fetch event manifest');
-            return await response.json();
+            const rawManifest = await response.json();
+            return this.normalizeManifest(rawManifest, eventId);
         } catch (error) {
             console.error('Error fetching event manifest:', error);
             // Return mock data for development
@@ -40,9 +41,124 @@ const API = {
     },
 
     /**
+     * Normalize manifest from photo-montages format to skiframes-web format
+     * Handles both old skiframes format and new photo-montages format
+     */
+    normalizeManifest(manifest, eventId) {
+        // Check if already in skiframes format (has content.videos)
+        if (manifest.content && manifest.content.videos) {
+            return manifest;
+        }
+
+        // Convert from photo-montages format
+        const race = manifest.race || {};
+        const videos = manifest.videos || [];
+
+        // Extract unique teams from videos
+        const teams = [...new Set(videos.map(v => v.team).filter(t => t))];
+
+        // Build event name from race info
+        const eventName = [race.event, race.age_group, race.discipline, race.run]
+            .filter(x => x)
+            .join(' - ') || eventId;
+
+        // Build lookup from rankings for fallback data (when video name is just "BibXXX")
+        const rankingsLookup = {};
+        const rankings = manifest.rankings?.by_gender || {};
+        for (const [gender, racers] of Object.entries(rankings)) {
+            for (const racer of racers) {
+                rankingsLookup[racer.bib] = {
+                    name: racer.name,
+                    team: racer.team,
+                    gender: gender,
+                    ussa_id: racer.ussa_id,
+                    ussa_profile_url: racer.ussa_profile_url
+                };
+            }
+        }
+
+        // Find comparison videos and build lookup
+        const comparisonLookup = {};
+        videos.forEach(v => {
+            if (v.is_comparison && v.comparison_bib) {
+                const key = `${v.bib}_${v.gender}`;
+                comparisonLookup[key] = v.path;
+            }
+        });
+
+        // Convert videos to skiframes format
+        const normalizedVideos = videos.map((v, idx) => {
+            // Generate thumb URL from video path
+            const thumbUrl = v.path.replace('.mp4', '_thumb.jpg');
+
+            // Check if name is just "BibXXX" pattern (unmatched racer) - use rankings as fallback
+            const needsFallback = /^Bib\d+$/.test(v.name);
+            const fallback = rankingsLookup[v.bib] || {};
+
+            // Get corrected values from rankings if needed
+            const athleteName = needsFallback ? (fallback.name || v.name) : v.name;
+            const athleteTeam = needsFallback ? (fallback.team || v.team || '') : (v.team || '');
+            const athleteGender = needsFallback ? (fallback.gender || v.gender) : v.gender;
+            const athleteUssaId = needsFallback ? (fallback.ussa_id || v.ussa_id) : v.ussa_id;
+            const athleteUssaUrl = needsFallback ? (fallback.ussa_profile_url || v.ussa_profile_url) : v.ussa_profile_url;
+
+            // Find comparison URL for non-comparison videos
+            let comparisonUrl = null;
+            if (!v.is_comparison) {
+                const key = `${v.bib}_${athleteGender}`;
+                comparisonUrl = comparisonLookup[key] || null;
+            }
+
+            // Clean USSA ID (strip leading letter)
+            const cleanUssaId = athleteUssaId ? String(athleteUssaId).replace(/^[A-Za-z]/, '') : '';
+
+            return {
+                id: `v${String(idx + 1).padStart(3, '0')}`,
+                athlete: athleteName,
+                bib: v.bib,
+                team: athleteTeam,
+                gender: athleteGender,
+                category: race.age_group || '',
+                run: parseInt(race.run?.replace('Run ', '') || '1'),
+                duration: v.duration,
+                video_url: v.path,
+                thumb_url: thumbUrl,
+                comparison_url: comparisonUrl,
+                is_comparison: v.is_comparison || false,
+                comparison_bib: v.comparison_bib,
+                rank: v.rank,
+                ussa_id: cleanUssaId,
+                ussa_profile_url: athleteUssaUrl ||
+                    (cleanUssaId ? `https://www.usskiandsnowboard.org/public-tools/members/${cleanUssaId}` : null),
+                status: v.status
+            };
+        });
+
+        // Extract date from eventId if not in manifest (format: YYYY-MM-DD_name)
+        const dateFromId = eventId.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+
+        return {
+            event_id: eventId,
+            event_name: eventName,
+            event_date: race.date || manifest.created_at?.split('T')[0] || dateFromId,
+            event_type: 'race',
+            location: manifest.course?.location || 'Ragged Mountain, NH',
+            teams: teams,
+            categories: race.age_group ? [race.age_group] : [],
+            summary: manifest.summary,
+            rankings: manifest.rankings,
+            content: {
+                videos: normalizedVideos,
+                montages: []
+            }
+        };
+    },
+
+    /**
      * Get full URL for a media file
      */
     getMediaUrl(relativePath, eventId) {
+        if (!relativePath) return '';
         if (relativePath.startsWith('http')) return relativePath;
         return `${this.MEDIA_BASE}/events/${eventId}/${relativePath}`;
     },

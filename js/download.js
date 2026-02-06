@@ -97,16 +97,40 @@ const Download = {
     },
 
     /**
-     * Download a single file
+     * Download a single file using fetch+blob to force download
      */
-    downloadSingle(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || this.getFilenameFromUrl(url);
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    async downloadSingle(url, filename) {
+        const finalFilename = filename || this.getFilenameFromUrl(url);
+
+        try {
+            // Use fetch + blob to force download instead of browser playing the file
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Fetch failed');
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = finalFilename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Clean up blob URL after a short delay
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        } catch (error) {
+            console.error('Download failed, falling back to direct link:', error);
+            // Fallback to direct download attempt
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = finalFilename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     },
 
     /**
@@ -157,19 +181,89 @@ const Download = {
     },
 
     /**
-     * Download all items for a team
+     * Download all items for a team as a ZIP file with folder structure:
+     * - Videos/Men/
+     * - Videos/Women/
+     * - vs Fastest/Men/
+     * - vs Fastest/Women/
+     * - Photo Montages/Men/
+     * - Photo Montages/Women/
      */
-    async downloadByTeam(items, team) {
-        const teamItems = items.filter(item => item.team === team);
+    async downloadByTeam(videos, comparisonVideos, montages, team, eventId) {
+        // Filter by team
+        const teamVideos = videos.filter(v => v.team === team);
+        const teamComparisons = comparisonVideos.filter(v => v.team === team);
+        const teamMontages = montages.filter(m => m.team === team);
 
-        if (teamItems.length === 0) {
+        const totalItems = teamVideos.length + teamComparisons.length + teamMontages.length;
+
+        if (totalItems === 0) {
             alert(`No items found for team ${team}`);
             return;
         }
 
-        // Select all team items and download
-        teamItems.forEach(item => this.select(item.id));
-        await this.downloadSelected(teamItems);
+        // Check if JSZip is available
+        if (typeof JSZip === 'undefined') {
+            alert('ZIP download not available. Please download items individually.');
+            return;
+        }
+
+        this.showProgress();
+        this.isProcessing = true;
+
+        const zip = new JSZip();
+        let completed = 0;
+
+        // Helper to add file to zip
+        const addToZip = async (url, folderPath, filename) => {
+            if (!this.isProcessing) return;
+            this.updateProgress(completed, totalItems, `Fetching ${filename}`);
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                zip.file(`${folderPath}/${filename}`, blob);
+            } catch (error) {
+                console.error(`Failed to fetch ${filename}:`, error);
+            }
+            completed++;
+        };
+
+        // Add regular videos
+        for (const v of teamVideos) {
+            const folder = `Videos/${v.gender}`;
+            const filename = `${v.athlete.replace(/\s+/g, '_')}_Bib${v.bib}.mp4`;
+            const url = API.getMediaUrl(v.video_url, eventId);
+            await addToZip(url, folder, filename);
+        }
+
+        // Add comparison videos (vs Fastest)
+        for (const v of teamComparisons) {
+            const folder = `vs Fastest/${v.gender}`;
+            const filename = `${v.athlete.replace(/\s+/g, '_')}_Bib${v.bib}_vs_Fastest.mp4`;
+            const url = API.getMediaUrl(v.video_url, eventId);
+            await addToZip(url, folder, filename);
+        }
+
+        // Add photo montages
+        for (const m of teamMontages) {
+            const folder = `Photo Montages/${m.gender || 'Other'}`;
+            const filename = m.filename || `montage_${m.id}.jpg`;
+            const url = API.getMediaUrl(m.full_url, eventId);
+            await addToZip(url, folder, filename);
+        }
+
+        if (this.isProcessing) {
+            this.updateProgress(totalItems, totalItems, 'Creating ZIP file...');
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+
+            this.downloadSingle(url, `${team}_all_content.zip`);
+            URL.revokeObjectURL(url);
+        }
+
+        this.hideProgress();
+        this.isProcessing = false;
     },
 
     /**
