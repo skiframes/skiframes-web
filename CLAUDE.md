@@ -115,6 +115,7 @@ skiframes-media/
 skiframes-web/
 ├── CLAUDE.md
 ├── README.md
+├── deploy.sh               # Deploy to dev or prod
 ├── index.html              # Landing page
 ├── event.html              # Single event view
 ├── css/
@@ -137,28 +138,40 @@ skiframes-web/
 
 ## AWS Infrastructure
 
-### S3 Buckets (obscured names for security)
-1. `avillachlab-net` - Static website files (HTML/CSS/JS)
-2. `avillachlab-netm` - Videos, images, manifests
+### S3 Buckets
+1. `avillachlab-net` - Production website files (HTML/CSS/JS)
+2. `avillachlab-net-dev` - Dev website files (for testing before prod)
+3. `avillachlab-netm` - Videos, images, manifests (shared by dev and prod)
 
 ### CloudFront Distributions
-1. `skiframes.com` - Website distribution (S3 origin)
-2. `media.skiframes.com` - Media CDN (S3 origin, optimized for video)
+1. `E3PZ6V0J6EMIMY` - Website distribution → skiframes.com
+2. `E1NKIYZ9037N7Q` - Media CDN → media.skiframes.com
 
-### Route 53
-- `skiframes.com` → CloudFront website
-- `media.skiframes.com` → CloudFront media CDN
+### DNS (Cloudflare)
+- `skiframes.com` → CloudFront website distribution
+- `www.skiframes.com` → CloudFront website distribution
+- `media.skiframes.com` → CloudFront media distribution
 
 ## Development
 
+### URLs
+- **Production**: https://skiframes.com
+- **Dev**: http://avillachlab-net-dev.s3-website-us-east-1.amazonaws.com
+- **Media CDN**: https://media.skiframes.com
+
+### Local Development
 ```bash
-# Local development (requires Python for simple server)
 python -m http.server 8000
+```
 
-# Deploy website
-./infrastructure/deploy.sh
+### Deploy
+```bash
+./deploy.sh dev    # Deploy to dev (default)
+./deploy.sh prod   # Deploy to production (requires confirmation)
+```
 
-# Sync media from edge device
+### Sync Media
+```bash
 ./infrastructure/sync-media.sh /path/to/output
 ```
 
