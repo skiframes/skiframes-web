@@ -727,15 +727,15 @@ body {
 
 .gender-header td {
     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-    font-weight: 800;
-    font-size: 24px;
+    font-weight: 700;
+    font-size: 16px;
     color: white;
-    padding: 20px 24px;
+    padding: 12px 20px;
     border-bottom: none;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 /* Montage Card */
