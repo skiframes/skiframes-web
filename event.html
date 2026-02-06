@@ -98,6 +98,7 @@
         <!-- Content Tabs -->
         <section class="tabs">
             <button class="tab active" data-tab="videos">Videos</button>
+            <button class="tab" data-tab="comparison">vs Fastest</button>
             <button class="tab" data-tab="montages">Photo Montages</button>
         </section>
 
@@ -119,12 +120,51 @@
                         <rect x="2" y="14" width="16" height="3" rx="1"/>
                     </svg>
                 </button>
+                <span class="sort-label">Sort:</span>
+                <div class="sort-buttons">
+                    <button class="sort-btn active" data-sort="bib">Bib</button>
+                    <button class="sort-btn" data-sort="rank">Rank</button>
+                    <button class="sort-btn" data-sort="duration">Time</button>
+                </div>
                 <span class="results-count" id="videoCount">0 videos</span>
             </div>
 
             <div id="videosGrid" class="content-grid">
                 <!-- Populated by JS -->
                 <div class="loading">Loading videos...</div>
+            </div>
+        </section>
+
+        <!-- Comparison Videos Section -->
+        <section id="comparisonSection" class="content-section" style="display: none;">
+            <div class="view-toggle">
+                <button id="gridViewComparison" class="view-btn active" title="Grid View">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="2" y="2" width="7" height="7" rx="1"/>
+                        <rect x="11" y="2" width="7" height="7" rx="1"/>
+                        <rect x="2" y="11" width="7" height="7" rx="1"/>
+                        <rect x="11" y="11" width="7" height="7" rx="1"/>
+                    </svg>
+                </button>
+                <button id="listViewComparison" class="view-btn" title="List View">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <rect x="2" y="3" width="16" height="3" rx="1"/>
+                        <rect x="2" y="8.5" width="16" height="3" rx="1"/>
+                        <rect x="2" y="14" width="16" height="3" rx="1"/>
+                    </svg>
+                </button>
+                <span class="sort-label">Sort:</span>
+                <div class="sort-buttons">
+                    <button class="sort-btn active" data-sort="bib">Bib</button>
+                    <button class="sort-btn" data-sort="rank">Rank</button>
+                    <button class="sort-btn" data-sort="duration">Time</button>
+                </div>
+                <span class="results-count" id="comparisonCount">0 comparison videos</span>
+            </div>
+
+            <div id="comparisonGrid" class="content-grid">
+                <!-- Populated by JS -->
+                <div class="loading">Loading comparison videos...</div>
             </div>
         </section>
 
@@ -208,6 +248,7 @@
         </div>
     </footer>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="js/api.js"></script>
     <script src="js/filters.js"></script>
     <script src="js/player.js"></script>

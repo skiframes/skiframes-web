@@ -7,7 +7,8 @@ const App = {
     state: {
         events: [],
         currentEvent: null,
-        view: 'grid' // 'grid' or 'list'
+        view: 'grid', // 'grid' or 'list'
+        sortBy: 'bib' // 'bib', 'rank', or 'duration'
     },
 
     /**
@@ -314,32 +315,48 @@ const App = {
                 // Show corresponding section
                 document.getElementById('videosSection').style.display =
                     tabName === 'videos' ? 'block' : 'none';
+                document.getElementById('comparisonSection').style.display =
+                    tabName === 'comparison' ? 'block' : 'none';
                 document.getElementById('montagesSection').style.display =
                     tabName === 'montages' ? 'block' : 'none';
             });
         });
 
-        // View toggle
-        const gridView = document.getElementById('gridView');
-        const listView = document.getElementById('listView');
+        // View toggle - setup for all view buttons
+        const viewButtons = [
+            { grid: 'gridView', list: 'listView' },
+            { grid: 'gridViewComparison', list: 'listViewComparison' }
+        ];
 
-        if (gridView) {
-            gridView.addEventListener('click', () => {
+        const allGridBtns = viewButtons.map(v => document.getElementById(v.grid)).filter(Boolean);
+        const allListBtns = viewButtons.map(v => document.getElementById(v.list)).filter(Boolean);
+
+        allGridBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
                 this.state.view = 'grid';
-                gridView.classList.add('active');
-                if (listView) listView.classList.remove('active');
+                allGridBtns.forEach(b => b.classList.add('active'));
+                allListBtns.forEach(b => b.classList.remove('active'));
                 this.renderEventContent();
             });
-        }
+        });
 
-        if (listView) {
-            listView.addEventListener('click', () => {
+        allListBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
                 this.state.view = 'list';
-                listView.classList.add('active');
-                if (gridView) gridView.classList.remove('active');
+                allListBtns.forEach(b => b.classList.add('active'));
+                allGridBtns.forEach(b => b.classList.remove('active'));
                 this.renderEventContent();
             });
-        }
+        });
+
+        // Sort buttons
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.state.sortBy = btn.dataset.sort;
+                this.updateSortButtons();
+                this.renderEventContent();
+            });
+        });
     },
 
     setupDownloadListeners(manifest) {
@@ -389,13 +406,19 @@ const App = {
                 const team = e.target.dataset.team;
                 if (team) {
                     const videos = manifest.content.videos || [];
-                    const items = videos.map(v => ({
-                        id: v.id,
-                        url: API.getMediaUrl(v.video_url, manifest.event_id),
-                        filename: `${v.athlete.replace(/\s+/g, '')}_Bib${v.bib}.mp4`,
-                        team: v.team
-                    }));
-                    Download.downloadByTeam(items, team);
+                    const montages = manifest.content.montages || [];
+
+                    // Split videos into regular and comparison
+                    const regularVideos = videos.filter(v => !v.is_comparison);
+                    const comparisonVideos = videos.filter(v => v.is_comparison);
+
+                    Download.downloadByTeam(
+                        regularVideos,
+                        comparisonVideos,
+                        montages,
+                        team,
+                        manifest.event_id
+                    );
                     teamDropdown.style.display = 'none';
                 }
             });
@@ -419,11 +442,20 @@ const App = {
         const manifest = this.state.currentEvent;
         if (!manifest) return;
 
-        // Render videos
-        const videos = manifest.content.videos || [];
-        const filteredVideos = Filters.filterVideos(videos);
-        const sortedVideos = Filters.sortVideosByBib(filteredVideos);
-        this.renderVideosGrid(sortedVideos, manifest.event_id);
+        // Split videos into regular and comparison
+        const allVideos = manifest.content.videos || [];
+        const regularVideos = allVideos.filter(v => !v.is_comparison);
+        const comparisonVideos = allVideos.filter(v => v.is_comparison);
+
+        // Filter and sort regular videos
+        const filteredRegular = Filters.filterVideos(regularVideos);
+        const sortedRegular = this.sortVideos(filteredRegular);
+        this.renderVideosGrid(sortedRegular, manifest.event_id, 'videosGrid');
+
+        // Filter and sort comparison videos
+        const filteredComparison = Filters.filterVideos(comparisonVideos);
+        const sortedComparison = this.sortVideos(filteredComparison);
+        this.renderVideosGrid(sortedComparison, manifest.event_id, 'comparisonGrid');
 
         // Render montages
         const montages = manifest.content.montages || [];
@@ -432,14 +464,37 @@ const App = {
 
         // Update counts
         const videoCount = document.getElementById('videoCount');
+        const comparisonCount = document.getElementById('comparisonCount');
         const montageCount = document.getElementById('montageCount');
 
-        if (videoCount) videoCount.textContent = `${filteredVideos.length} videos`;
+        if (videoCount) videoCount.textContent = `${filteredRegular.length} videos`;
+        if (comparisonCount) comparisonCount.textContent = `${filteredComparison.length} comparison videos`;
         if (montageCount) montageCount.textContent = `${filteredMontages.length} montages`;
+
+        // Update sort button active state
+        this.updateSortButtons();
     },
 
-    renderVideosGrid(videos, eventId) {
-        const container = document.getElementById('videosGrid');
+    sortVideos(videos) {
+        switch (this.state.sortBy) {
+            case 'rank':
+                return Filters.sortVideosByRank(videos);
+            case 'duration':
+                return Filters.sortVideosByDuration(videos);
+            case 'bib':
+            default:
+                return Filters.sortVideosByBib(videos);
+        }
+    },
+
+    updateSortButtons() {
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.sort === this.state.sortBy);
+        });
+    },
+
+    renderVideosGrid(videos, eventId, containerId = 'videosGrid') {
+        const container = document.getElementById(containerId);
         if (!container) return;
 
         if (videos.length === 0) {
@@ -454,7 +509,24 @@ const App = {
 
         container.className = `content-grid ${this.state.view === 'list' ? 'list-view' : ''}`;
 
-        container.innerHTML = videos.map(video => `
+        container.innerHTML = videos.map(video => {
+            const teamDisplay = video.team ? `${video.team} • ` : '';
+            // Show DSQ/DNF or Run Rank
+            const rankDisplay = video.status === 'dsq' ? 'DSQ • '
+                : video.status === 'dnf' ? 'DNF • '
+                : video.rank ? `Run Rank #${video.rank} • ` : '';
+            // Format duration as time (e.g., 29.04s)
+            const durationDisplay = video.duration ? `${video.duration.toFixed(2)}s` : '';
+            // Only show "vs Fastest" badge on comparison videos
+            const comparisonBadge = video.is_comparison
+                ? '<span class="video-comparison-badge">vs Fastest</span>'
+                : '';
+            // Wrap athlete name with USSA profile link if available
+            const athleteDisplay = video.ussa_profile_url
+                ? `<a href="${video.ussa_profile_url}" target="_blank" class="athlete-link" onclick="event.stopPropagation()">${video.athlete}</a>`
+                : video.athlete;
+
+            return `
             <div class="video-card" data-item-id="${video.id}" data-video-url="${API.getMediaUrl(video.video_url, eventId)}">
                 <div class="video-thumbnail">
                     <input type="checkbox" class="video-card-checkbox"
@@ -462,16 +534,18 @@ const App = {
                            onclick="event.stopPropagation(); Download.toggle('${video.id}');">
                     ${video.thumb_url ? `<img src="${API.getMediaUrl(video.thumb_url, eventId)}" alt="${video.athlete}">` : ''}
                     <span class="video-duration">${Player.formatDuration(video.duration)}</span>
-                    ${video.comparison_url ? '<span class="video-comparison-badge">vs Fastest</span>' : ''}
+                    ${comparisonBadge}
                 </div>
                 <div class="video-card-content">
-                    <h4>${video.athlete}</h4>
+                    <h4>${athleteDisplay}</h4>
                     <p class="video-card-meta">
-                        Bib ${video.bib} • ${video.team} • ${video.category} ${video.gender} • Run ${video.run}
+                        ${rankDisplay}Bib ${video.bib} • ${teamDisplay}${video.category} ${video.gender} • Run ${video.run}
                     </p>
+                    <p class="video-card-time">${durationDisplay}</p>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         // Add click handlers for video cards
         container.querySelectorAll('.video-card').forEach(card => {
@@ -600,7 +674,9 @@ const App = {
     },
 
     formatDate(dateStr) {
+        if (!dateStr) return '';
         const date = new Date(dateStr + 'T00:00:00');
+        if (isNaN(date.getTime())) return dateStr; // Return original if invalid
         return date.toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
