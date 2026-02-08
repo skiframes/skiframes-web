@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream - Skiframes</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" type="image/png" href="/assets/Skiframes_logo.png">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-0VLYQ9N3YN"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-0VLYQ9N3YN');
+    </script>
+    <style>
+        .live-hero {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        .live-hero h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        .video-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .video-container-live {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 */
+            background: #000;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        .video-container-live video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .stream-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .status-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .status-text.live {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .status-text.offline {
+            color: var(--text-secondary);
+        }
+        .offline-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+        }
+        .offline-message h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .offline-message p {
+            opacity: 0.8;
+        }
+        .stream-info {
+            max-width: 800px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+        .info-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .info-card h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        .info-card p {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .keyboard-shortcuts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .shortcut {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .shortcut kbd {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        @media (max-width: 768px) {
+            .live-hero {
+                padding: 16px;
+            }
+            .live-hero h1 {
+                font-size: 22px;
+            }
+            .video-wrapper {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/assets/Skiframes_logo.png" alt="Skiframes" class="logo-img">
+                <span class="logo-text">Skiframes</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">Events</a>
+                <a href="/live" class="nav-link" style="color: var(--primary);">Live</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="live-hero">
+            <h1>Live Stream</h1>
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span id="streamStatus">Connecting...</span>
+            </div>
+        </section>
+
+        <div class="video-wrapper">
+            <div class="video-container-live">
+                <video id="liveVideo" controls playsinline></video>
+                <div id="offlineMessage" class="offline-message" style="display: none;">
+                    <h2>Stream Offline</h2>
+                    <p>The live stream is not currently active.<br>Check back during race events.</p>
+                </div>
+            </div>
+            <div class="stream-controls">
+                <button id="goLive" class="btn btn-primary btn-sm">Go Live</button>
+                <button id="fullscreenBtn" class="btn btn-secondary btn-sm">Fullscreen</button>
+                <span id="statusText" class="status-text"></span>
+            </div>
+        </div>
+
+        <div class="stream-info">
+            <div class="info-card">
+                <h3>Keyboard Shortcuts</h3>
+                <div class="keyboard-shortcuts">
+                    <div class="shortcut"><kbd>Space</kbd> Play/Pause</div>
+                    <div class="shortcut"><kbd>L</kbd> Jump to Live</div>
+                    <div class="shortcut"><kbd>F</kbd> Fullscreen</div>
+                    <div class="shortcut"><kbd>&larr;</kbd> Back 10s</div>
+                    <div class="shortcut"><kbd>&rarr;</kbd> Forward 10s</div>
+                    <div class="shortcut"><kbd>M</kbd> Mute</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Skiframes. Video analytics for alpine ski racing.</p>
+            <p class="footer-links">
+                <a href="/">Events</a>
+                <span class="separator">|</span>
+                <a href="https://github.com/skiframes">GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <script>
+        // Stream configuration
+        const STREAM_URL = 'https://vwgvyk.egress.t7c7zl.mediapackagev2.us-east-1.amazonaws.com/out/v1/channel-group-FY/channel-FY/standard-hls/manifest.m3u8';
+
+        const video = document.getElementById('liveVideo');
+        const statusIndicator = document.getElementById('streamStatus');
+        const statusText = document.getElementById('statusText');
+        const offlineMessage = document.getElementById('offlineMessage');
+        const goLiveBtn = document.getElementById('goLive');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        let hls = null;
+        let isLive = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+
+        function updateStatus(status, message) {
+            statusIndicator.textContent = status;
+            statusText.textContent = message || '';
+
+            if (status === 'LIVE') {
+                statusIndicator.parentElement.style.background = 'rgba(255,255,255,0.2)';
+                document.querySelector('.live-dot').style.display = 'block';
+                offlineMessage.style.display = 'none';
+                video.style.display = 'block';
+                isLive = true;
+            } else if (status === 'Offline') {
+                statusIndicator.parentElement.style.background = 'rgba(0,0,0,0.3)';
+                document.querySelector('.live-dot').style.display = 'none';
+                offlineMessage.style.display = 'block';
+                video.style.display = 'none';
+                isLive = false;
+            } else {
+                document.querySelector('.live-dot').style.display = 'block';
+            }
+        }
+
+        function initPlayer() {
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    enableWorker: true,
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 10,
+                    liveDurationInfinity: true,
+                    lowLatencyMode: true,
+                });
+
+                hls.loadSource(STREAM_URL);
+                hls.attachMedia(video);
+
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    updateStatus('LIVE', '');
+                    video.play().catch(() => {
+                        // Autoplay blocked - user needs to click
+                        statusText.textContent = 'Click to play';
+                    });
+                    retryCount = 0;
+                });
+
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                if (retryCount < MAX_RETRIES) {
+                                    retryCount++;
+                                    updateStatus('Connecting...', `Retry ${retryCount}/${MAX_RETRIES}`);
+                                    setTimeout(() => hls.loadSource(STREAM_URL), 5000);
+                                } else {
+                                    updateStatus('Offline', 'Stream not available');
+                                }
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                updateStatus('Offline', 'Stream error');
+                                break;
+                        }
+                    }
+                });
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
+                video.src = STREAM_URL;
+                video.addEventListener('loadedmetadata', function() {
+                    updateStatus('LIVE', '');
+                    video.play().catch(() => {});
+                });
+                video.addEventListener('error', function() {
+                    updateStatus('Offline', 'Stream not available');
+                });
+            } else {
+                updateStatus('Offline', 'Browser not supported');
+            }
+        }
+
+        function jumpToLive() {
+            if (hls && isLive) {
+                if (hls.liveSyncPosition) {
+                    video.currentTime = hls.liveSyncPosition;
+                }
+                video.play();
+            } else if (video.duration) {
+                video.currentTime = video.duration;
+                video.play();
+            }
+        }
+
+        function toggleFullscreen() {
+            const container = document.querySelector('.video-container-live');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                (container.requestFullscreen || container.webkitRequestFullscreen).call(container);
+            }
+        }
+
+        // Event listeners
+        goLiveBtn.addEventListener('click', jumpToLive);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT') return;
+
+            switch(e.key.toLowerCase()) {
+                case ' ':
+                    e.preventDefault();
+                    video.paused ? video.play() : video.pause();
+                    break;
+                case 'l':
+                    jumpToLive();
+                    break;
+                case 'f':
+                    toggleFullscreen();
+                    break;
+                case 'arrowleft':
+                    video.currentTime -= 10;
+                    break;
+                case 'arrowright':
+                    video.currentTime += 10;
+                    break;
+                case 'm':
+                    video.muted = !video.muted;
+                    break;
+            }
+        });
+
+        // Reconnect on tab visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !isLive && hls) {
+                retryCount = 0;
+                hls.loadSource(STREAM_URL);
+            }
+        });
+
+        // Initialize
+        initPlayer();
+    </script>
+</body>
+</html>

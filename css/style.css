@@ -89,6 +89,41 @@ body {
     color: var(--primary);
 }
 
+.nav-link.live-btn {
+    background: #dc2626;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    animation: pulse-bg 2s ease-in-out infinite;
+}
+
+.nav-link.live-btn:hover {
+    background: #b91c1c;
+    color: white;
+}
+
+.nav-link.live-btn .live-dot {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border-radius: 50%;
+    animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes pulse-bg {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+}
+
 /* ========================================
    Hero Section
    ======================================== */
@@ -838,7 +873,10 @@ body {
 
 /* Montage Card */
 .montages-grid {
+    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 0 20px;
 }
 
 .montage-card {
