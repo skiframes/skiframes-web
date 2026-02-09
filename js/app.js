@@ -55,6 +55,7 @@ const App = {
         const teamFilter = document.getElementById('teamFilter');
         const categoryFilter = document.getElementById('categoryFilter');
         const typeFilter = document.getElementById('typeFilter');
+        const disciplineFilter = document.getElementById('disciplineFilter');
         const clearBtn = document.getElementById('clearFilters');
 
         if (searchInput) {
@@ -105,6 +106,12 @@ const App = {
             });
         }
 
+        if (disciplineFilter) {
+            disciplineFilter.addEventListener('change', () => {
+                Filters.set('discipline', disciplineFilter.value);
+            });
+        }
+
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 Filters.clear();
@@ -113,6 +120,7 @@ const App = {
                 if (teamFilter) teamFilter.value = '';
                 if (categoryFilter) categoryFilter.value = '';
                 if (typeFilter) typeFilter.value = '';
+                if (disciplineFilter) disciplineFilter.value = '';
             });
         }
 
@@ -160,6 +168,7 @@ const App = {
                 <div class="event-card-image">
                     ${logoUrl ? `<img src="${logoUrl}" alt="${event.event_name}" class="event-card-logo">` : ''}
                     <span class="event-badge ${event.event_type}">${event.event_type}</span>
+                    ${event.discipline && event.discipline !== 'freeski' ? `<span class="event-badge discipline">${{sl_youth:'SL',sl_adult:'SL',gs_panel:'GS',sg_panel:'SG'}[event.discipline] || event.discipline}</span>` : ''}
                 </div>
                 <div class="event-card-content">
                     <h3>${event.event_name}</h3>

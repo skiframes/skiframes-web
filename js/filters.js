@@ -12,6 +12,7 @@ const Filters = {
         run: '',
         contentType: '',
         eventType: '',
+        discipline: '',
         dateFrom: '',
         dateTo: ''
     },
@@ -77,6 +78,20 @@ const Filters = {
             // Event type filter
             if (this.state.eventType && event.event_type !== this.state.eventType) {
                 return false;
+            }
+
+            // Discipline filter (sl matches sl_youth and sl_adult, gs matches gs_panel, etc.)
+            if (this.state.discipline) {
+                const eventDisc = event.discipline || '';
+                if (this.state.discipline === 'sl') {
+                    if (!eventDisc.startsWith('sl')) return false;
+                } else if (this.state.discipline === 'gs') {
+                    if (!eventDisc.startsWith('gs')) return false;
+                } else if (this.state.discipline === 'sg') {
+                    if (!eventDisc.startsWith('sg')) return false;
+                } else if (eventDisc !== this.state.discipline) {
+                    return false;
+                }
             }
 
             // Date filter

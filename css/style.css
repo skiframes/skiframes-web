@@ -381,6 +381,13 @@ body {
     color: white;
 }
 
+.event-badge.discipline {
+    background: var(--warning);
+    color: white;
+    left: auto;
+    right: 12px;
+}
+
 .event-card-content {
     padding: 20px;
 }

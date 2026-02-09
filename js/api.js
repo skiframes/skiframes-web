@@ -75,6 +75,7 @@ const API = {
                 event_name: manifest.event_name || eventId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
                 event_date: manifest.event_date || dateFromId,
                 event_type: manifest.event_type || 'training',
+                discipline: manifest.discipline || 'freeski',
                 location: 'Ragged Mountain, NH',
                 teams: [],
                 categories: manifest.group ? [manifest.group] : [],
