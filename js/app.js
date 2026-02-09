@@ -573,6 +573,12 @@ const App = {
         if (videoCount) videoCount.textContent = `${filteredRegular.length} videos`;
         if (montageCount) montageCount.textContent = `${filteredMontages.length} montages`;
 
+        // Hide empty sections
+        const videosSection = document.getElementById('videosSection');
+        const montagesSection = document.getElementById('montagesSection');
+        if (videosSection) videosSection.style.display = filteredRegular.length > 0 ? '' : 'none';
+        if (montagesSection) montagesSection.style.display = filteredMontages.length > 0 ? '' : 'none';
+
         // Update sort button active state
         this.updateSortButtons();
     },

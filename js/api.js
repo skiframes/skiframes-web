@@ -50,7 +50,42 @@ const API = {
             return manifest;
         }
 
-        // Convert from photo-montages format
+        // Check for edge montage format (has runs[] array from RTSP detection)
+        if (manifest.runs && Array.isArray(manifest.runs)) {
+            const montages = [];
+            manifest.runs.forEach((run, idx) => {
+                // Each run has variants (base, _2later, etc.)
+                for (const [variantName, variant] of Object.entries(run.variants || {})) {
+                    montages.push({
+                        id: `m${String(idx * 10 + Object.keys(run.variants).indexOf(variantName) + 1).padStart(3, '0')}`,
+                        run_number: run.run_number,
+                        variant: variantName,
+                        timestamp: run.timestamp,
+                        thumb_url: variant.thumbnail,
+                        full_url: variant.fullres,
+                        frame_count: variant.frame_count
+                    });
+                }
+            });
+
+            const dateFromId = eventId.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
+
+            return {
+                event_id: eventId,
+                event_name: manifest.event_name || eventId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                event_date: manifest.event_date || dateFromId,
+                event_type: manifest.event_type || 'training',
+                location: 'Ragged Mountain, NH',
+                teams: [],
+                categories: manifest.group ? [manifest.group] : [],
+                content: {
+                    videos: [],
+                    montages: montages
+                }
+            };
+        }
+
+        // Convert from photo-montages stitcher format
         const race = manifest.race || {};
         const videos = manifest.videos || [];
 
@@ -166,6 +201,21 @@ const API = {
             return `${this.MEDIA_BASE}/${relativePath}`;
         }
         return `${this.MEDIA_BASE}/events/${eventId}/${relativePath}`;
+    },
+
+    /**
+     * Fetch live banner configuration
+     */
+    async getLiveBannerConfig() {
+        try {
+            const response = await fetch(`${this.MEDIA_BASE}/config/live-banner.json?t=${Date.now()}`);
+            if (!response.ok) throw new Error('Failed to fetch live banner config');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching live banner config:', error);
+            // Return default disabled state
+            return { enabled: false, title: '', subtitle: '', raceStartTime: null };
+        }
     },
 
     /**

@@ -23,9 +23,9 @@
                 <span class="logo-text">Skiframes</span>
             </a>
             <nav class="nav">
-                <a href="/live" class="nav-link live-btn">
+                <a href="/live/" class="nav-link live-btn" id="liveBannerLink" style="display: none;">
                     <span class="live-dot"></span>
-                    LIVE Broadcast - NHARA Western Division GS Qualifier - Dartmouth Skiway - Sunday, February 8, 2026
+                    <span id="liveBannerText">LIVE Broadcast</span>
                 </a>
                 <a href="#races" class="nav-link">Race Days</a>
                 <a href="#training" class="nav-link">Training</a>
@@ -190,5 +190,21 @@
     <script src="js/player.js"></script>
     <script src="js/download.js"></script>
     <script src="js/app.js"></script>
+    <script>
+    // Load live banner config
+    (async function() {
+        try {
+            const config = await API.getLiveBannerConfig();
+            if (config.enabled) {
+                const link = document.getElementById('liveBannerLink');
+                const text = document.getElementById('liveBannerText');
+                text.textContent = 'LIVE Broadcast - ' + config.title + (config.subtitle ? ' - ' + config.subtitle : '');
+                link.style.display = '';
+            }
+        } catch (e) {
+            console.error('Error loading live banner:', e);
+        }
+    })();
+    </script>
 </body>
 </html>

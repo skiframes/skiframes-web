@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skiframes Admin</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" type="image/png" href="/assets/Skiframes_logo.png">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+        .admin-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+        .event-item {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+        .event-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .event-item-header h3 {
+            font-size: 18px;
+        }
+        .content-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .content-item {
+            background: var(--background);
+            border-radius: var(--radius);
+            padding: 12px;
+            position: relative;
+        }
+        .content-item.selected {
+            outline: 2px solid var(--danger);
+            background: #fef2f2;
+        }
+        .content-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .content-item p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .content-item .checkbox {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 20px;
+            height: 20px;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-danger:disabled {
+            background: #fca5a5;
+            cursor: not-allowed;
+        }
+        .selection-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .selection-bar.hidden {
+            display: none;
+        }
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .loading-overlay.hidden { display: none; }
+        .loading-spinner {
+            background: white;
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .tab-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .confirm-modal.hidden { display: none; }
+        .confirm-content {
+            background: white;
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            max-width: 400px;
+            text-align: center;
+        }
+        .confirm-content h3 {
+            margin-bottom: 16px;
+            color: var(--danger);
+        }
+        .confirm-content p {
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+        }
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <header class="header admin-header">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <img src="/assets/Skiframes_logo.png" alt="Skiframes" class="logo-img">
+                <span class="logo-text">Skiframes</span>
+                <span class="admin-badge">ADMIN</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">Back to Site</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Live Banner Settings -->
+        <section class="section">
+            <div class="section-header">
+                <h2>Live Banner Settings</h2>
+            </div>
+            <div class="event-item">
+                <div style="display: grid; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="bannerEnabled" style="width: 18px; height: 18px;" autocomplete="off">
+                            <span style="font-weight: 600;">Enable Live Banner</span>
+                        </label>
+                        <span id="bannerStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
+                    </div>
+                    <div style="display: grid; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Title</label>
+                            <input type="text" id="bannerTitle" placeholder="e.g. NHARA Western Division GS Qualifier" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Subtitle</label>
+                            <input type="text" id="bannerSubtitle" placeholder="e.g. Dartmouth Skiway - Sunday, February 8, 2026" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Race Start Time (for DVR jump button)</label>
+                            <input type="datetime-local" id="bannerRaceStart" style="padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);">
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="Admin.saveBannerConfig()">Save Banner Settings</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2>Content Management</h2>
+            </div>
+
+            <div class="tab-container">
+                <button class="tab-btn active" data-tab="training">Training Sessions</button>
+                <button class="tab-btn" data-tab="races">Race Days</button>
+            </div>
+
+            <div id="eventsList">
+                <div class="loading">Loading events...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Selection Bar -->
+    <div id="selectionBar" class="selection-bar hidden">
+        <span id="selectionCount">0 items selected</span>
+        <div>
+            <button class="btn btn-secondary" onclick="Admin.clearSelection()">Clear Selection</button>
+            <button class="btn btn-danger" onclick="Admin.confirmDelete()">Delete Selected</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p id="loadingText">Deleting...</p>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="confirm-modal hidden">
+        <div class="confirm-content">
+            <h3>Confirm Deletion</h3>
+            <p id="confirmText">Are you sure you want to delete these items? This cannot be undone.</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="Admin.cancelDelete()">Cancel</button>
+                <button class="btn btn-danger" onclick="Admin.executeDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    const Admin = {
+        // Cloudflare Worker API endpoint - UPDATE THIS after deploying the worker
+        API_URL: 'https://skiframes-admin-api.avillach.workers.dev',
+
+        selectedItems: new Set(),
+        currentTab: 'training',
+        events: [],
+
+        async init() {
+            // Load banner config
+            await this.loadBannerConfig();
+
+            // Load events
+            await this.loadEvents();
+
+            // Set up tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+            });
+        },
+
+        async loadBannerConfig() {
+            try {
+                const config = await API.getLiveBannerConfig();
+                document.getElementById('bannerEnabled').checked = config.enabled === true;
+                document.getElementById('bannerTitle').value = config.title || '';
+                document.getElementById('bannerSubtitle').value = config.subtitle || '';
+                if (config.raceStartTime) {
+                    // Convert to local datetime-local format
+                    const date = new Date(config.raceStartTime);
+                    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+                    document.getElementById('bannerRaceStart').value = local.toISOString().slice(0, 16);
+                }
+                document.getElementById('bannerStatus').textContent = config.enabled ? '(Currently visible)' : '(Currently hidden)';
+            } catch (error) {
+                console.error('Error loading banner config:', error);
+                document.getElementById('bannerStatus').textContent = '(Error loading config)';
+            }
+        },
+
+        async saveBannerConfig() {
+            const config = {
+                enabled: document.getElementById('bannerEnabled').checked,
+                title: document.getElementById('bannerTitle').value,
+                subtitle: document.getElementById('bannerSubtitle').value,
+                raceStartTime: document.getElementById('bannerRaceStart').value ?
+                    new Date(document.getElementById('bannerRaceStart').value).toISOString() : null
+            };
+
+            this.showLoading('Saving banner settings...');
+
+            try {
+                const response = await fetch(`${this.API_URL}/save-banner-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                this.showToast('Banner settings saved', 'success');
+                document.getElementById('bannerStatus').textContent = config.enabled ? '(Currently visible)' : '(Currently hidden)';
+            } catch (error) {
+                console.error('Save error:', error);
+                this.showToast('Failed to save: ' + error.message, 'error');
+            }
+
+            this.hideLoading();
+        },
+
+        async loadEvents() {
+            try {
+                const index = await API.getEventsIndex();
+                this.events = index.events || [];
+                this.renderEvents();
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('eventsList').innerHTML =
+                    '<div class="empty-state"><h3>Error loading events</h3></div>';
+            }
+        },
+
+        switchTab(tab) {
+            this.currentTab = tab;
+            this.clearSelection();
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tab);
+            });
+
+            this.renderEvents();
+        },
+
+        renderEvents() {
+            const filtered = this.events.filter(e =>
+                this.currentTab === 'training' ? e.event_type === 'training' : e.event_type === 'race'
+            );
+
+            if (filtered.length === 0) {
+                document.getElementById('eventsList').innerHTML =
+                    `<div class="empty-state"><h3>No ${this.currentTab} events found</h3></div>`;
+                return;
+            }
+
+            const html = filtered.map(event => `
+                <div class="event-item" data-event-id="${event.event_id}">
+                    <div class="event-item-header">
+                        <div>
+                            <h3>${event.event_name}</h3>
+                            <p style="color: var(--text-secondary); font-size: 14px;">
+                                ${event.event_date} • ${event.location || ''}
+                            </p>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-sm" onclick="Admin.loadEventContent('${event.event_id}', this)">
+                                Load Content
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="Admin.deleteEvent('${event.event_id}')">
+                                Delete Event
+                            </button>
+                        </div>
+                    </div>
+                    <div class="content-list" id="content-${event.event_id}"></div>
+                </div>
+            `).join('');
+
+            document.getElementById('eventsList').innerHTML = html;
+        },
+
+        async loadEventContent(eventId, button) {
+            button.disabled = true;
+            button.textContent = 'Loading...';
+
+            try {
+                const manifest = await API.getEventManifest(eventId);
+                const contentDiv = document.getElementById(`content-${eventId}`);
+
+                // Combine videos and montages
+                const items = [];
+
+                if (manifest.content?.videos) {
+                    manifest.content.videos.forEach(v => {
+                        if (!v.is_comparison) {
+                            items.push({
+                                type: 'video',
+                                id: v.id,
+                                name: v.athlete,
+                                thumb: API.getMediaUrl(v.thumb_url, eventId),
+                                path: v.video_url,
+                                eventId: eventId
+                            });
+                        }
+                    });
+                }
+
+                if (manifest.content?.montages) {
+                    manifest.content.montages.forEach(m => {
+                        items.push({
+                            type: 'montage',
+                            id: m.id,
+                            name: m.session_type || 'Montage',
+                            thumb: API.getMediaUrl(m.thumb_url, eventId),
+                            path: m.full_url,
+                            eventId: eventId
+                        });
+                    });
+                }
+
+                if (items.length === 0) {
+                    contentDiv.innerHTML = '<p style="color: var(--text-secondary);">No content found</p>';
+                } else {
+                    contentDiv.innerHTML = items.map(item => `
+                        <div class="content-item" data-item-id="${item.id}" data-event-id="${item.eventId}" data-path="${item.path}">
+                            <input type="checkbox" class="checkbox" onchange="Admin.toggleItem('${item.eventId}:${item.id}', this)">
+                            <img src="${item.thumb}" alt="${item.name}" onerror="this.src='../assets/Skiframes_logo.png'">
+                            <p><strong>${item.name}</strong></p>
+                            <p>${item.type}</p>
+                        </div>
+                    `).join('');
+                }
+
+                button.textContent = 'Reload';
+            } catch (error) {
+                console.error('Error loading content:', error);
+                document.getElementById(`content-${eventId}`).innerHTML =
+                    '<p style="color: var(--danger);">Error loading content</p>';
+                button.textContent = 'Retry';
+            }
+
+            button.disabled = false;
+        },
+
+        toggleItem(itemKey, checkbox) {
+            const item = checkbox.closest('.content-item');
+
+            if (checkbox.checked) {
+                this.selectedItems.add(itemKey);
+                item.classList.add('selected');
+            } else {
+                this.selectedItems.delete(itemKey);
+                item.classList.remove('selected');
+            }
+
+            this.updateSelectionBar();
+        },
+
+        updateSelectionBar() {
+            const bar = document.getElementById('selectionBar');
+            const count = this.selectedItems.size;
+
+            if (count > 0) {
+                bar.classList.remove('hidden');
+                document.getElementById('selectionCount').textContent =
+                    `${count} item${count > 1 ? 's' : ''} selected`;
+            } else {
+                bar.classList.add('hidden');
+            }
+        },
+
+        clearSelection() {
+            this.selectedItems.clear();
+            document.querySelectorAll('.content-item.selected').forEach(el => {
+                el.classList.remove('selected');
+                el.querySelector('.checkbox').checked = false;
+            });
+            this.updateSelectionBar();
+        },
+
+        confirmDelete() {
+            const count = this.selectedItems.size;
+            document.getElementById('confirmText').textContent =
+                `Are you sure you want to delete ${count} item${count > 1 ? 's' : ''}? This cannot be undone.`;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        },
+
+        cancelDelete() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        },
+
+        async deleteEvent(eventId) {
+            if (!confirm(`Delete the entire event "${eventId}"? This will remove all videos and photos.`)) {
+                return;
+            }
+
+            this.showLoading('Deleting event...');
+
+            try {
+                const response = await fetch(`${this.API_URL}/delete-event`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ eventId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                this.showToast('Event deleted successfully', 'success');
+                await this.loadEvents();
+            } catch (error) {
+                console.error('Delete error:', error);
+                this.showToast('Failed to delete: ' + error.message, 'error');
+            }
+
+            this.hideLoading();
+        },
+
+        async executeDelete() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            this.showLoading('Deleting items...');
+
+            // Group items by event
+            const byEvent = {};
+            this.selectedItems.forEach(key => {
+                const [eventId, itemId] = key.split(':');
+                if (!byEvent[eventId]) byEvent[eventId] = [];
+
+                const el = document.querySelector(`[data-item-id="${itemId}"][data-event-id="${eventId}"]`);
+                if (el) {
+                    byEvent[eventId].push({
+                        id: itemId,
+                        path: el.dataset.path
+                    });
+                }
+            });
+
+            try {
+                const response = await fetch(`${this.API_URL}/delete-items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ items: byEvent })
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                this.showToast('Items deleted successfully', 'success');
+                this.clearSelection();
+
+                // Reload affected events
+                for (const eventId of Object.keys(byEvent)) {
+                    const btn = document.querySelector(`[data-event-id="${eventId}"] .btn-secondary`);
+                    if (btn) this.loadEventContent(eventId, btn);
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                this.showToast('Failed to delete: ' + error.message, 'error');
+            }
+
+            this.hideLoading();
+        },
+
+        showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        },
+
+        hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        },
+
+        showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+    };
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => Admin.init());
+    </script>
+</body>
+</html>

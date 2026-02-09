@@ -18,22 +18,22 @@
         .live-hero {
             background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
             color: white;
-            padding: 24px;
+            padding: 12px 24px;
             text-align: center;
         }
         .live-hero h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
         .live-indicator {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(255,255,255,0.2);
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
             font-weight: 600;
         }
         .live-dot {
@@ -57,7 +57,7 @@
             width: 100%;
             padding-top: 56.25%; /* 16:9 */
             background: #000;
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
             overflow: hidden;
             box-shadow: var(--shadow-lg);
         }
@@ -68,6 +68,84 @@
             width: 100%;
             height: 100%;
         }
+
+        /* DVR Controls */
+        .dvr-controls {
+            background: #1f2937;
+            padding: 16px;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+        .dvr-timeline {
+            position: relative;
+            height: 8px;
+            background: #374151;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .dvr-buffered {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #6b7280;
+            border-radius: 4px;
+        }
+        .dvr-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: #dc2626;
+            border-radius: 4px;
+        }
+        .dvr-handle {
+            position: absolute;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            cursor: grab;
+        }
+        .dvr-handle:active {
+            cursor: grabbing;
+        }
+        .dvr-time-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-size: 14px;
+        }
+        .dvr-current-time {
+            font-variant-numeric: tabular-nums;
+        }
+        .dvr-live-badge {
+            background: #dc2626;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dvr-live-badge.behind {
+            background: #6b7280;
+        }
+        .dvr-live-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+
         .stream-controls {
             display: flex;
             align-items: center;
@@ -141,15 +219,29 @@
             font-family: monospace;
             font-size: 12px;
         }
+        .btn-race-start {
+            background: #059669;
+            color: white;
+        }
+        .btn-race-start:hover {
+            background: #047857;
+        }
         @media (max-width: 768px) {
             .live-hero {
-                padding: 16px;
+                padding: 10px 16px;
             }
             .live-hero h1 {
-                font-size: 22px;
+                font-size: 16px;
             }
             .video-wrapper {
                 padding: 16px;
+            }
+            .stream-controls {
+                gap: 8px;
+            }
+            .stream-controls .btn {
+                padding: 8px 12px;
+                font-size: 13px;
             }
         }
     </style>
@@ -169,8 +261,9 @@
     </header>
 
     <main>
-        <section class="live-hero">
-            <h1>Live Stream</h1>
+        <section class="live-hero" id="liveHero" style="display: none;">
+            <h1 id="liveTitle">Live Stream</h1>
+            <p id="liveSubtitle" style="opacity: 0.9; margin-bottom: 6px; font-size: 14px;"></p>
             <div class="live-indicator">
                 <span class="live-dot"></span>
                 <span id="streamStatus">Connecting...</span>
@@ -179,13 +272,32 @@
 
         <div class="video-wrapper">
             <div class="video-container-live">
-                <video id="liveVideo" controls playsinline></video>
+                <video id="liveVideo" playsinline></video>
                 <div id="offlineMessage" class="offline-message" style="display: none;">
                     <h2>Stream Offline</h2>
                     <p>The live stream is not currently active.<br>Check back during race events.</p>
                 </div>
             </div>
+
+            <!-- DVR Controls -->
+            <div class="dvr-controls" id="dvrControls">
+                <div class="dvr-timeline" id="dvrTimeline">
+                    <div class="dvr-buffered" id="dvrBuffered"></div>
+                    <div class="dvr-progress" id="dvrProgress"></div>
+                    <div class="dvr-handle" id="dvrHandle"></div>
+                </div>
+                <div class="dvr-time-info">
+                    <span class="dvr-current-time" id="currentTime">--:--:--</span>
+                    <span id="dvrWindow">DVR: -- available</span>
+                    <button class="dvr-live-badge" id="liveBadge">
+                        <span class="dot"></span>
+                        LIVE
+                    </button>
+                </div>
+            </div>
+
             <div class="stream-controls">
+                <button id="raceStart" class="btn btn-race-start btn-sm">Jump to Race Start (10:30 AM)</button>
                 <button id="goLive" class="btn btn-primary btn-sm">Go Live</button>
                 <button id="fullscreenBtn" class="btn btn-secondary btn-sm">Fullscreen</button>
                 <span id="statusText" class="status-text"></span>
@@ -194,13 +306,14 @@
 
         <div class="stream-info">
             <div class="info-card">
-                <h3>Keyboard Shortcuts</h3>
+                <h3>DVR Playback</h3>
+                <p>You can rewind the stream to watch earlier parts of the race. Use the timeline above or the buttons below.</p>
                 <div class="keyboard-shortcuts">
                     <div class="shortcut"><kbd>Space</kbd> Play/Pause</div>
                     <div class="shortcut"><kbd>L</kbd> Jump to Live</div>
                     <div class="shortcut"><kbd>F</kbd> Fullscreen</div>
-                    <div class="shortcut"><kbd>&larr;</kbd> Back 10s</div>
-                    <div class="shortcut"><kbd>&rarr;</kbd> Forward 10s</div>
+                    <div class="shortcut"><kbd>&larr;</kbd> Back 30s</div>
+                    <div class="shortcut"><kbd>&rarr;</kbd> Forward 30s</div>
                     <div class="shortcut"><kbd>M</kbd> Mute</div>
                 </div>
             </div>
@@ -219,21 +332,81 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+    <script src="/js/api.js"></script>
+
     <script>
         // Stream configuration
         const STREAM_URL = 'https://vwgvyk.egress.t7c7zl.mediapackagev2.us-east-1.amazonaws.com/out/v1/channel-group-FY/channel-FY/standard-hls/manifest.m3u8';
+
+        // Race start time - will be set from config
+        let RACE_START = null;
+
+        // Load live banner config and initialize page
+        (async function loadConfig() {
+            try {
+                const config = await API.getLiveBannerConfig();
+                if (config.enabled) {
+                    document.getElementById('liveTitle').textContent = config.title || 'Live Stream';
+                    document.getElementById('liveSubtitle').textContent = config.subtitle || '';
+                    document.getElementById('liveHero').style.display = '';
+                    if (config.raceStartTime) {
+                        RACE_START = new Date(config.raceStartTime);
+                        const raceBtn = document.getElementById('raceStart');
+                        if (raceBtn && RACE_START) {
+                            const timeStr = RACE_START.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            raceBtn.textContent = `Jump to Race Start (${timeStr})`;
+                        }
+                    }
+                } else {
+                    // Show generic title if banner disabled
+                    document.getElementById('liveTitle').textContent = 'Live Stream';
+                    document.getElementById('liveSubtitle').textContent = 'Skiframes Live Broadcast';
+                    document.getElementById('liveHero').style.display = '';
+                }
+            } catch (e) {
+                console.error('Error loading live config:', e);
+                document.getElementById('liveTitle').textContent = 'Live Stream';
+                document.getElementById('liveHero').style.display = '';
+            }
+        })();
 
         const video = document.getElementById('liveVideo');
         const statusIndicator = document.getElementById('streamStatus');
         const statusText = document.getElementById('statusText');
         const offlineMessage = document.getElementById('offlineMessage');
         const goLiveBtn = document.getElementById('goLive');
+        const raceStartBtn = document.getElementById('raceStart');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // DVR elements
+        const dvrTimeline = document.getElementById('dvrTimeline');
+        const dvrProgress = document.getElementById('dvrProgress');
+        const dvrBuffered = document.getElementById('dvrBuffered');
+        const dvrHandle = document.getElementById('dvrHandle');
+        const currentTimeEl = document.getElementById('currentTime');
+        const dvrWindowEl = document.getElementById('dvrWindow');
+        const liveBadge = document.getElementById('liveBadge');
 
         let hls = null;
         let isLive = false;
         let retryCount = 0;
         const MAX_RETRIES = 5;
+        let isDragging = false;
+        let streamStartTime = null;
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatClockTime(date) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
 
         function updateStatus(status, message) {
             statusIndicator.textContent = status;
@@ -256,6 +429,49 @@
             }
         }
 
+        function updateDVRControls() {
+            if (!video.duration || !isFinite(video.duration)) return;
+
+            const seekable = video.seekable;
+            if (seekable.length === 0) return;
+
+            const start = seekable.start(0);
+            const end = seekable.end(seekable.length - 1);
+            const current = video.currentTime;
+            const duration = end - start;
+
+            // Calculate stream start time if not set
+            if (!streamStartTime) {
+                streamStartTime = new Date(Date.now() - (end * 1000));
+            }
+
+            // Update progress bar
+            const progress = ((current - start) / duration) * 100;
+            dvrProgress.style.width = `${Math.max(0, Math.min(100, progress))}%`;
+            dvrHandle.style.left = `${Math.max(0, Math.min(100, progress))}%`;
+
+            // Update buffered indicator
+            dvrBuffered.style.width = '100%';
+
+            // Update time display - show actual clock time
+            const currentClockTime = new Date(streamStartTime.getTime() + (current * 1000));
+            currentTimeEl.textContent = formatClockTime(currentClockTime);
+
+            // Update DVR window info
+            const dvrMinutes = Math.floor(duration / 60);
+            dvrWindowEl.textContent = `DVR: ${dvrMinutes} min available`;
+
+            // Update live badge
+            const behindLive = end - current;
+            if (behindLive < 15) {
+                liveBadge.classList.remove('behind');
+                liveBadge.innerHTML = '<span class="dot"></span> LIVE';
+            } else {
+                liveBadge.classList.add('behind');
+                liveBadge.innerHTML = `${formatTime(behindLive)} behind live`;
+            }
+        }
+
         function initPlayer() {
             if (Hls.isSupported()) {
                 hls = new Hls({
@@ -263,7 +479,10 @@
                     liveSyncDurationCount: 3,
                     liveMaxLatencyDurationCount: 10,
                     liveDurationInfinity: true,
-                    lowLatencyMode: true,
+                    lowLatencyMode: false,
+                    backBufferLength: Infinity,
+                    maxBufferLength: 60,
+                    maxMaxBufferLength: 600,
                 });
 
                 hls.loadSource(STREAM_URL);
@@ -272,7 +491,6 @@
                 hls.on(Hls.Events.MANIFEST_PARSED, function() {
                     updateStatus('LIVE', '');
                     video.play().catch(() => {
-                        // Autoplay blocked - user needs to click
                         statusText.textContent = 'Click to play';
                     });
                     retryCount = 0;
@@ -316,19 +534,53 @@
         }
 
         function jumpToLive() {
-            if (hls && isLive) {
-                if (hls.liveSyncPosition) {
-                    video.currentTime = hls.liveSyncPosition;
-                }
-                video.play();
-            } else if (video.duration) {
-                video.currentTime = video.duration;
-                video.play();
+            if (hls && hls.liveSyncPosition) {
+                video.currentTime = hls.liveSyncPosition;
+            } else if (video.seekable.length > 0) {
+                video.currentTime = video.seekable.end(video.seekable.length - 1);
             }
+            video.play();
+        }
+
+        function jumpToRaceStart() {
+            // Calculate seconds from stream start to race start
+            if (!RACE_START) {
+                statusText.textContent = 'Race start time not configured';
+                return;
+            }
+            if (!streamStartTime) {
+                statusText.textContent = 'Stream time not available yet';
+                return;
+            }
+
+            const seekable = video.seekable;
+            if (seekable.length === 0) {
+                statusText.textContent = 'DVR not available';
+                return;
+            }
+
+            const start = seekable.start(0);
+            const end = seekable.end(seekable.length - 1);
+
+            // Calculate the video time that corresponds to race start
+            const streamStartMs = streamStartTime.getTime();
+            const raceStartMs = RACE_START.getTime();
+            const targetTime = (raceStartMs - streamStartMs) / 1000;
+
+            if (targetTime < start) {
+                statusText.textContent = 'Race start is no longer in DVR window';
+                video.currentTime = start;
+            } else if (targetTime > end) {
+                statusText.textContent = 'Race has not started yet';
+            } else {
+                video.currentTime = targetTime;
+                statusText.textContent = '';
+            }
+            video.play();
         }
 
         function toggleFullscreen() {
-            const container = document.querySelector('.video-container-live');
+            const container = document.querySelector('.video-wrapper');
             if (document.fullscreenElement) {
                 document.exitFullscreen();
             } else {
@@ -336,9 +588,61 @@
             }
         }
 
+        function seekToPosition(e) {
+            const rect = dvrTimeline.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+            const seekable = video.seekable;
+            if (seekable.length > 0) {
+                const start = seekable.start(0);
+                const end = seekable.end(seekable.length - 1);
+                video.currentTime = start + (percent * (end - start));
+            }
+        }
+
         // Event listeners
         goLiveBtn.addEventListener('click', jumpToLive);
+        raceStartBtn.addEventListener('click', jumpToRaceStart);
         fullscreenBtn.addEventListener('click', toggleFullscreen);
+        liveBadge.addEventListener('click', jumpToLive);
+
+        // DVR timeline interactions
+        dvrTimeline.addEventListener('click', seekToPosition);
+
+        dvrHandle.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                seekToPosition(e);
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Touch support for timeline
+        dvrTimeline.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            seekToPosition(e.touches[0]);
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                seekToPosition(e.touches[0]);
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Update DVR controls periodically
+        video.addEventListener('timeupdate', updateDVRControls);
+        setInterval(updateDVRControls, 1000);
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
@@ -356,10 +660,10 @@
                     toggleFullscreen();
                     break;
                 case 'arrowleft':
-                    video.currentTime -= 10;
+                    video.currentTime -= 30;
                     break;
                 case 'arrowright':
-                    video.currentTime += 10;
+                    video.currentTime += 30;
                     break;
                 case 'm':
                     video.muted = !video.muted;

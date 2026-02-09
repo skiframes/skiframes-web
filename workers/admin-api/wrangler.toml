@@ -1,0 +1,23 @@
+name = "skiframes-admin-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+account_id = "cb6a81e50b0d35f93081b684f2683a3d"
+
+[vars]
+# S3 bucket for media files
+S3_BUCKET = "avillachlab-netm"
+S3_REGION = "us-east-1"
+
+# Cloudflare Access settings
+CF_ACCESS_TEAM = "skiframes"
+
+# CORS settings (comma-separated for multiple origins)
+ALLOWED_ORIGINS = "https://skiframes.com,http://avillachlab-net-dev.s3-website-us-east-1.amazonaws.com"
+
+# CloudFront distribution ID for media CDN (for cache invalidation)
+MEDIA_CLOUDFRONT_ID = "E1NKIYZ9037N7Q"
+
+# These should be set as secrets, not here:
+# wrangler secret put AWS_ACCESS_KEY_ID
+# wrangler secret put AWS_SECRET_ACCESS_KEY
+# wrangler secret put CF_ACCESS_AUD
