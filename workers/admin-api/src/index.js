@@ -44,6 +44,10 @@ export default {
                 return await handleSaveBannerConfig(request, env);
             }
 
+            if (url.pathname === '/update-event' && request.method === 'POST') {
+                return await handleUpdateEvent(request, env);
+            }
+
             return new Response('Not Found', {
                 status: 404,
                 headers: corsHeaders(env, request)
@@ -147,16 +151,31 @@ async function handleDeleteItems(request, env) {
 
     const results = [];
 
+    const invalidationPaths = [];
+
     for (const [eventId, itemList] of Object.entries(items)) {
         for (const item of itemList) {
             try {
                 // Delete the file from S3
-                await deleteFromS3(env, `events/${eventId}/${item.path}`);
+                const fullKey = `events/${eventId}/${item.path}`;
+                await deleteFromS3(env, fullKey);
+                invalidationPaths.push(`/${fullKey}`);
 
                 // Also delete thumbnail if it exists
-                const thumbPath = item.path.replace('.mp4', '_thumb.jpg').replace('.jpg', '_thumb.jpg');
+                // Handle both video (.mp4) and montage (.jpg) thumbnails
+                // Thumbnails are in thumbnails/ dir with _thumb suffix
+                let thumbPath;
+                if (item.path.startsWith('fullres/')) {
+                    // Montage: fullres/run_001.jpg -> thumbnails/run_001_thumb.jpg
+                    thumbPath = item.path.replace('fullres/', 'thumbnails/').replace('.jpg', '_thumb.jpg');
+                } else {
+                    // Video or other: just add _thumb before extension
+                    thumbPath = item.path.replace('.mp4', '_thumb.jpg').replace('.jpg', '_thumb.jpg');
+                }
                 try {
-                    await deleteFromS3(env, `events/${eventId}/${thumbPath}`);
+                    const thumbKey = `events/${eventId}/${thumbPath}`;
+                    await deleteFromS3(env, thumbKey);
+                    invalidationPaths.push(`/${thumbKey}`);
                 } catch (e) {
                     // Thumbnail might not exist, that's OK
                 }
@@ -168,7 +187,17 @@ async function handleDeleteItems(request, env) {
         }
 
         // Update the manifest to remove deleted items
-        await updateManifest(env, eventId, itemList.map(i => i.id));
+        await updateManifest(env, eventId, itemList.map(i => i.id), itemList.map(i => i.path));
+        invalidationPaths.push(`/events/${eventId}/manifest.json`);
+    }
+
+    // Invalidate CloudFront cache for deleted items
+    if (invalidationPaths.length > 0) {
+        try {
+            await invalidateCloudFrontPaths(env, invalidationPaths);
+        } catch (e) {
+            console.error('CloudFront invalidation failed (non-fatal):', e);
+        }
     }
 
     return new Response(JSON.stringify({ results }), {
@@ -222,6 +251,82 @@ async function handleSaveBannerConfig(request, env) {
             ...corsHeaders(env, request)
         }
     });
+}
+
+/**
+ * Handle updating event metadata
+ */
+async function handleUpdateEvent(request, env) {
+    const { eventId, updates } = await request.json();
+
+    if (!eventId || !updates) {
+        return new Response('Missing eventId or updates', {
+            status: 400,
+            headers: corsHeaders(env, request)
+        });
+    }
+
+    try {
+        // Get current manifest
+        const manifestKey = `events/${eventId}/manifest.json`;
+        const manifest = await getFromS3(env, manifestKey);
+
+        if (!manifest) {
+            return new Response('Event not found', {
+                status: 404,
+                headers: corsHeaders(env, request)
+            });
+        }
+
+        // Update manifest fields
+        if (updates.event_name !== undefined) manifest.event_name = updates.event_name;
+        if (updates.event_date !== undefined) manifest.event_date = updates.event_date;
+        if (updates.event_type !== undefined) manifest.event_type = updates.event_type;
+        if (updates.location !== undefined) manifest.location = updates.location;
+        if (updates.discipline !== undefined) manifest.discipline = updates.discipline;
+
+        // Save updated manifest
+        await putToS3(env, manifestKey, JSON.stringify(manifest, null, 2));
+
+        // Also update the root index.json
+        const index = await getFromS3(env, 'index.json');
+        if (index && index.events) {
+            const eventIndex = index.events.findIndex(e => e.event_id === eventId);
+            if (eventIndex !== -1) {
+                if (updates.event_name !== undefined) index.events[eventIndex].event_name = updates.event_name;
+                if (updates.event_date !== undefined) index.events[eventIndex].event_date = updates.event_date;
+                if (updates.event_type !== undefined) index.events[eventIndex].event_type = updates.event_type;
+                if (updates.location !== undefined) index.events[eventIndex].location = updates.location;
+                if (updates.discipline !== undefined) index.events[eventIndex].discipline = updates.discipline;
+
+                await putToS3(env, 'index.json', JSON.stringify(index, null, 2));
+            }
+        }
+
+        // Invalidate CloudFront cache
+        try {
+            await invalidateCloudFrontPaths(env, [
+                `/events/${eventId}/manifest.json`,
+                '/index.json'
+            ]);
+        } catch (e) {
+            console.error('CloudFront invalidation failed (non-fatal):', e);
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                ...corsHeaders(env, request)
+            }
+        });
+    } catch (error) {
+        console.error('Update event error:', error);
+        return new Response('Failed to update event: ' + error.message, {
+            status: 500,
+            headers: corsHeaders(env, request)
+        });
+    }
 }
 
 /**
@@ -394,6 +499,58 @@ async function invalidateCloudFront(env, path) {
     return true;
 }
 
+/**
+ * Invalidate CloudFront cache for multiple paths
+ */
+async function invalidateCloudFrontPaths(env, paths) {
+    const distributionId = env.MEDIA_CLOUDFRONT_ID;
+    if (!distributionId) {
+        console.log('No MEDIA_CLOUDFRONT_ID configured, skipping invalidation');
+        return;
+    }
+
+    const datetime = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const callerReference = `invalidation-${Date.now()}`;
+
+    const itemsXml = paths.map(p => `      <Path>${escapeXml(p)}</Path>`).join('\n');
+    const body = `<?xml version="1.0" encoding="UTF-8"?>
+<InvalidationBatch xmlns="http://cloudfront.amazonaws.com/doc/2020-05-31/">
+  <CallerReference>${callerReference}</CallerReference>
+  <Paths>
+    <Quantity>${paths.length}</Quantity>
+    <Items>
+${itemsXml}
+    </Items>
+  </Paths>
+</InvalidationBatch>`;
+
+    const host = 'cloudfront.amazonaws.com';
+    const url = `https://${host}/2020-05-31/distribution/${distributionId}/invalidation`;
+    const bodyHash = await sha256(body);
+
+    const headers = {
+        'Host': host,
+        'x-amz-date': datetime,
+        'x-amz-content-sha256': bodyHash,
+        'Content-Type': 'application/xml'
+    };
+
+    const signedHeaders = await signCloudFrontRequest('POST', url, headers, body, env);
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: signedHeaders,
+        body: body
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`CloudFront invalidation failed: ${response.status} - ${text}`);
+    }
+
+    return true;
+}
+
 async function signCloudFrontRequest(method, url, headers, body, env) {
     const urlObj = new URL(url);
     const datetime = headers['x-amz-date'];
@@ -485,7 +642,7 @@ async function listS3Objects(env, prefix) {
 /**
  * Update manifest to remove deleted items
  */
-async function updateManifest(env, eventId, deletedIds) {
+async function updateManifest(env, eventId, deletedIds, deletedPaths) {
     try {
         // Get current manifest
         const manifestKey = `events/${eventId}/manifest.json`;
@@ -493,7 +650,7 @@ async function updateManifest(env, eventId, deletedIds) {
 
         if (!manifest) return;
 
-        // Remove deleted items
+        // Remove deleted items from skiframes-web format
         if (manifest.content?.videos) {
             manifest.content.videos = manifest.content.videos.filter(
                 v => !deletedIds.includes(v.id)
@@ -506,11 +663,27 @@ async function updateManifest(env, eventId, deletedIds) {
             );
         }
 
-        // For photo-montages format
+        // For photo-montages stitcher format
         if (manifest.videos) {
             manifest.videos = manifest.videos.filter(
                 v => !deletedIds.includes(v.id)
             );
+        }
+
+        // For photo-montages edge format (runs[] with variants)
+        if (manifest.runs && Array.isArray(manifest.runs) && deletedPaths) {
+            const pathSet = new Set(deletedPaths);
+            manifest.runs = manifest.runs.filter(run => {
+                if (!run.variants) return true;
+                // Remove variants whose fullres path was deleted
+                for (const [variantName, variant] of Object.entries(run.variants)) {
+                    if (pathSet.has(variant.fullres)) {
+                        delete run.variants[variantName];
+                    }
+                }
+                // Keep run only if it still has variants
+                return Object.keys(run.variants).length > 0;
+            });
         }
 
         // Save updated manifest

@@ -172,13 +172,31 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: white;
+            padding: 40px;
+        }
+        .offline-message img {
+            width: 120px;
+            height: auto;
+            opacity: 0.6;
+            margin-bottom: 24px;
         }
         .offline-message h2 {
             font-size: 24px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
         }
         .offline-message p {
             opacity: 0.8;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .offline-message .check-back {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            display: inline-block;
+            font-size: 14px;
         }
         .stream-info {
             max-width: 800px;
@@ -272,10 +290,12 @@
 
         <div class="video-wrapper">
             <div class="video-container-live">
-                <video id="liveVideo" playsinline></video>
-                <div id="offlineMessage" class="offline-message" style="display: none;">
-                    <h2>Stream Offline</h2>
-                    <p>The live stream is not currently active.<br>Check back during race events.</p>
+                <video id="liveVideo" playsinline style="display: none;"></video>
+                <div id="offlineMessage" class="offline-message">
+                    <img src="/assets/Skiframes_logo.png" alt="Skiframes">
+                    <h2>Broadcast Not Live</h2>
+                    <p>The live stream is not currently active.</p>
+                    <div class="check-back">Check back during race events</div>
                 </div>
             </div>
 
@@ -341,11 +361,15 @@
         // Race start time - will be set from config
         let RACE_START = null;
 
+        // Track if stream should be enabled
+        let streamEnabled = false;
+
         // Load live banner config and initialize page
         (async function loadConfig() {
             try {
                 const config = await API.getLiveBannerConfig();
                 if (config.enabled) {
+                    streamEnabled = true;
                     document.getElementById('liveTitle').textContent = config.title || 'Live Stream';
                     document.getElementById('liveSubtitle').textContent = config.subtitle || '';
                     document.getElementById('liveHero').style.display = '';
@@ -357,16 +381,19 @@
                             raceBtn.textContent = `Jump to Race Start (${timeStr})`;
                         }
                     }
+                    // Initialize player only when enabled
+                    initPlayer();
                 } else {
-                    // Show generic title if banner disabled
-                    document.getElementById('liveTitle').textContent = 'Live Stream';
-                    document.getElementById('liveSubtitle').textContent = 'Skiframes Live Broadcast';
-                    document.getElementById('liveHero').style.display = '';
+                    // Banner disabled - show offline message, hide controls
+                    document.getElementById('liveHero').style.display = 'none';
+                    document.getElementById('dvrControls').style.display = 'none';
+                    document.querySelector('.stream-controls').style.display = 'none';
                 }
             } catch (e) {
                 console.error('Error loading live config:', e);
                 document.getElementById('liveTitle').textContent = 'Live Stream';
                 document.getElementById('liveHero').style.display = '';
+                initPlayer();
             }
         })();
 
@@ -671,16 +698,15 @@
             }
         });
 
-        // Reconnect on tab visibility change
+        // Reconnect on tab visibility change (only if stream enabled)
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && !isLive && hls) {
+            if (!document.hidden && !isLive && hls && streamEnabled) {
                 retryCount = 0;
                 hls.loadSource(STREAM_URL);
             }
         });
 
-        // Initialize
-        initPlayer();
+        // Player initialization moved to loadConfig() - only starts if admin enabled
     </script>
 </body>
 </html>

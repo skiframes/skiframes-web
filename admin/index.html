@@ -195,6 +195,54 @@
             gap: 12px;
             justify-content: center;
         }
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .edit-modal.hidden { display: none; }
+        .edit-content {
+            background: white;
+            padding: 32px;
+            border-radius: var(--radius-lg);
+            max-width: 500px;
+            width: 90%;
+        }
+        .edit-content h3 {
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+        .edit-form {
+            display: grid;
+            gap: 16px;
+        }
+        .edit-form label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .edit-form input,
+        .edit-form select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+        }
+        .edit-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
     </style>
 </head>
 <body>
@@ -289,6 +337,49 @@
                 <button class="btn btn-secondary" onclick="Admin.cancelDelete()">Cancel</button>
                 <button class="btn btn-danger" onclick="Admin.executeDelete()">Delete</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Event Modal -->
+    <div id="editModal" class="edit-modal hidden">
+        <div class="edit-content">
+            <h3>Edit Event Metadata</h3>
+            <form class="edit-form" onsubmit="Admin.saveEventEdit(event)">
+                <input type="hidden" id="editEventId">
+                <div>
+                    <label>Event Name</label>
+                    <input type="text" id="editEventName" required>
+                </div>
+                <div>
+                    <label>Event Date</label>
+                    <input type="date" id="editEventDate" required>
+                </div>
+                <div>
+                    <label>Event Type</label>
+                    <select id="editEventType" required>
+                        <option value="training">Training</option>
+                        <option value="race">Race</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Location</label>
+                    <input type="text" id="editEventLocation" placeholder="e.g. Ragged Mountain, NH">
+                </div>
+                <div>
+                    <label>Discipline</label>
+                    <select id="editEventDiscipline">
+                        <option value="">Not specified</option>
+                        <option value="SL">Slalom (SL)</option>
+                        <option value="GS">Giant Slalom (GS)</option>
+                        <option value="SG">Super-G (SG)</option>
+                        <option value="DH">Downhill (DH)</option>
+                    </select>
+                </div>
+                <div class="edit-actions">
+                    <button type="button" class="btn btn-secondary" onclick="Admin.cancelEventEdit()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -407,12 +498,15 @@
                         <div>
                             <h3>${event.event_name}</h3>
                             <p style="color: var(--text-secondary); font-size: 14px;">
-                                ${event.event_date} • ${event.location || ''}
+                                ${event.event_date} • ${event.location || ''}${event.discipline ? ` • ${event.discipline}` : ''}
                             </p>
                         </div>
                         <div>
                             <button class="btn btn-secondary btn-sm" onclick="Admin.loadEventContent('${event.event_id}', this)">
                                 Load Content
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="Admin.editEvent('${event.event_id}')">
+                                Edit
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="Admin.deleteEvent('${event.event_id}')">
                                 Delete Event
@@ -628,6 +722,61 @@
             document.body.appendChild(toast);
 
             setTimeout(() => toast.remove(), 3000);
+        },
+
+        editEvent(eventId) {
+            const event = this.events.find(e => e.event_id === eventId);
+            if (!event) return;
+
+            document.getElementById('editEventId').value = eventId;
+            document.getElementById('editEventName').value = event.event_name || '';
+            document.getElementById('editEventDate').value = event.event_date || '';
+            document.getElementById('editEventType').value = event.event_type || 'training';
+            document.getElementById('editEventLocation').value = event.location || '';
+            document.getElementById('editEventDiscipline').value = event.discipline || '';
+
+            document.getElementById('editModal').classList.remove('hidden');
+        },
+
+        cancelEventEdit() {
+            document.getElementById('editModal').classList.add('hidden');
+        },
+
+        async saveEventEdit(e) {
+            e.preventDefault();
+
+            const eventId = document.getElementById('editEventId').value;
+            const updates = {
+                event_name: document.getElementById('editEventName').value,
+                event_date: document.getElementById('editEventDate').value,
+                event_type: document.getElementById('editEventType').value,
+                location: document.getElementById('editEventLocation').value,
+                discipline: document.getElementById('editEventDiscipline').value || null
+            };
+
+            document.getElementById('editModal').classList.add('hidden');
+            this.showLoading('Saving changes...');
+
+            try {
+                const response = await fetch(`${this.API_URL}/update-event`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ eventId, updates })
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                this.showToast('Event updated successfully', 'success');
+                await this.loadEvents();
+            } catch (error) {
+                console.error('Update error:', error);
+                this.showToast('Failed to update: ' + error.message, 'error');
+            }
+
+            this.hideLoading();
         }
     };
 
