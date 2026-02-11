@@ -303,6 +303,9 @@
             <div class="tab-container">
                 <button class="tab-btn active" data-tab="training">Training Sessions</button>
                 <button class="tab-btn" data-tab="races">Race Days</button>
+                <button class="tab-btn" data-tab="gate_training">Gate Training</button>
+                <button class="tab-btn" data-tab="free_skiing">Free Skiing</button>
+                <button class="tab-btn" data-tab="test">Test</button>
             </div>
 
             <div id="eventsList">
@@ -359,6 +362,9 @@
                     <select id="editEventType" required>
                         <option value="training">Training</option>
                         <option value="race">Race</option>
+                        <option value="gate_training">Gate Training</option>
+                        <option value="free_skiing">Free Skiing</option>
+                        <option value="test">Test</option>
                     </select>
                 </div>
                 <div>
@@ -369,10 +375,12 @@
                     <label>Discipline</label>
                     <select id="editEventDiscipline">
                         <option value="">Not specified</option>
+                        <option value="freeski">Free Skiing</option>
                         <option value="SL">Slalom (SL)</option>
                         <option value="GS">Giant Slalom (GS)</option>
                         <option value="SG">Super-G (SG)</option>
                         <option value="DH">Downhill (DH)</option>
+                        <option value="TEST">TEST</option>
                     </select>
                 </div>
                 <div class="edit-actions">
@@ -482,9 +490,15 @@
         },
 
         renderEvents() {
-            const filtered = this.events.filter(e =>
-                this.currentTab === 'training' ? e.event_type === 'training' : e.event_type === 'race'
-            );
+            const tabToType = {
+                'training': 'training',
+                'races': 'race',
+                'gate_training': 'gate_training',
+                'free_skiing': 'free_skiing',
+                'test': 'test'
+            };
+            const targetType = tabToType[this.currentTab] || this.currentTab;
+            const filtered = this.events.filter(e => e.event_type === targetType);
 
             if (filtered.length === 0) {
                 document.getElementById('eventsList').innerHTML =
@@ -562,7 +576,13 @@
                 if (items.length === 0) {
                     contentDiv.innerHTML = '<p style="color: var(--text-secondary);">No content found</p>';
                 } else {
-                    contentDiv.innerHTML = items.map(item => `
+                    contentDiv.innerHTML = `
+                        <div style="grid-column: 1 / -1; margin-bottom: 8px;">
+                            <button class="btn btn-secondary btn-sm" onclick="Admin.selectAllFromEvent('${eventId}', this)">
+                                Select All
+                            </button>
+                        </div>
+                    ` + items.map(item => `
                         <div class="content-item" data-item-id="${item.id}" data-event-id="${item.eventId}" data-path="${item.path}">
                             <input type="checkbox" class="checkbox" onchange="Admin.toggleItem('${item.eventId}:${item.id}', this)">
                             <img src="${item.thumb}" alt="${item.name}" onerror="this.src='../assets/Skiframes_logo.png'">
@@ -616,6 +636,47 @@
                 el.classList.remove('selected');
                 el.querySelector('.checkbox').checked = false;
             });
+            this.updateSelectionBar();
+            // Reset all Select All buttons
+            document.querySelectorAll('[onclick^="Admin.selectAllFromEvent"]').forEach(btn => {
+                btn.textContent = 'Select All';
+            });
+        },
+
+        selectAllFromEvent(eventId, button) {
+            const contentDiv = document.getElementById(`content-${eventId}`);
+            const items = contentDiv.querySelectorAll('.content-item');
+
+            // Check if all items in this event are already selected
+            let allSelected = true;
+            items.forEach(item => {
+                const itemId = item.dataset.itemId;
+                const key = `${eventId}:${itemId}`;
+                if (!this.selectedItems.has(key)) {
+                    allSelected = false;
+                }
+            });
+
+            // Toggle: if all selected, deselect all; otherwise select all
+            items.forEach(item => {
+                const itemId = item.dataset.itemId;
+                const key = `${eventId}:${itemId}`;
+                const checkbox = item.querySelector('.checkbox');
+
+                if (allSelected) {
+                    // Deselect all
+                    this.selectedItems.delete(key);
+                    item.classList.remove('selected');
+                    checkbox.checked = false;
+                } else {
+                    // Select all
+                    this.selectedItems.add(key);
+                    item.classList.add('selected');
+                    checkbox.checked = true;
+                }
+            });
+
+            button.textContent = allSelected ? 'Select All' : 'Deselect All';
             this.updateSelectionBar();
         },
 
