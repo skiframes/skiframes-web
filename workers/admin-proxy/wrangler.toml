@@ -1,0 +1,9 @@
+name = "skiframes-admin-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+account_id = "cb6a81e50b0d35f93081b684f2683a3d"
+
+# Route will be added manually in Cloudflare dashboard
+
+[vars]
+S3_ORIGIN = "http://avillachlab-net.s3-website-us-east-1.amazonaws.com"
