@@ -7,7 +7,8 @@ const App = {
     state: {
         events: [],
         currentEvent: null,
-        sortBy: 'rank' // 'rank' or 'duration'
+        sortBy: 'rank', // 'rank' or 'duration'
+        showFastest: false
     },
 
     /**
@@ -350,6 +351,9 @@ const App = {
         // Set default montage variant to slowest speed
         this.initMontageSpeedFilter(manifest);
 
+        // Setup fastest skier toggle
+        this.setupFastestToggle(manifest);
+
         // Render content
         this.renderEventContent();
 
@@ -364,6 +368,43 @@ const App = {
             document.getElementById('modalImage'),
             document.getElementById('imageModal')
         );
+
+        // Start auto-refresh polling for new montages
+        this.startMontagePolling(manifest.event_id);
+    },
+
+    /**
+     * Poll manifest for new montages and update the page automatically
+     */
+    startMontagePolling(eventId) {
+        // Poll every 10 seconds
+        this.montagePollingInterval = setInterval(async () => {
+            try {
+                const updated = await API.getEventManifest(eventId, true);
+                const currentCount = (this.state.currentEvent.content.montages || []).length;
+                const newCount = (updated.content.montages || []).length;
+
+                if (newCount > currentCount) {
+                    // Preserve current variant selection
+                    const currentVariant = Filters.state.montageVariant;
+
+                    this.state.currentEvent = updated;
+
+                    // Re-init speed buttons if new variants appeared
+                    const variants = Filters.getVariantsSlowestFirst(updated.content.montages || []);
+                    if (variants.length > 0) {
+                        if (!currentVariant || !variants.includes(currentVariant)) {
+                            Filters.state.montageVariant = variants[0];
+                        }
+                        this.renderMontageSpeedButtons(variants);
+                    }
+
+                    this.renderEventContent();
+                }
+            } catch (e) {
+                // Silently ignore polling errors
+            }
+        }, 10000);
     },
 
     updateEventHeader(manifest) {
@@ -512,6 +553,32 @@ const App = {
         return variant.replace(/^_/, '').replace(/later$/i, 'x');
     },
 
+    setupFastestToggle(manifest) {
+        const montages = manifest.content.montages || [];
+        const hasTimingData = montages.some(m => m.elapsed_time != null);
+
+        const toggleBtn = document.getElementById('showFastestToggle');
+        if (!toggleBtn || !hasTimingData) return;
+
+        toggleBtn.style.display = 'inline-flex';
+        toggleBtn.addEventListener('click', () => {
+            this.state.showFastest = !this.state.showFastest;
+            toggleBtn.classList.toggle('active', this.state.showFastest);
+            toggleBtn.textContent = this.state.showFastest ? 'Hide Fastest' : 'Show Fastest';
+            this.renderEventContent();
+        });
+    },
+
+    getFastestMontage(montages, variant) {
+        const candidates = montages.filter(m =>
+            m.elapsed_time != null && (!variant || m.variant === variant)
+        );
+        if (candidates.length === 0) return null;
+        return candidates.reduce((fastest, m) =>
+            m.elapsed_time < fastest.elapsed_time ? m : fastest
+        );
+    },
+
     setupDownloadListeners(manifest) {
         const selectAllBtn = document.getElementById('selectAll');
         const selectNoneBtn = document.getElementById('selectNone');
@@ -611,23 +678,29 @@ const App = {
         const sortedRegular = this.sortVideos(filteredRegular);
         this.renderVideosGrid(sortedRegular, manifest.event_id, 'videosGrid', comparisonLookup);
 
-        // Render montages
+        // Render montages (latest first by run_number, then timestamp)
         const montages = manifest.content.montages || [];
         const filteredMontages = Filters.filterMontages(montages);
-        this.renderMontagesGrid(filteredMontages, manifest.event_id);
+        const sortedMontages = [...filteredMontages].sort((a, b) => {
+            if (a.run_number !== undefined && b.run_number !== undefined) {
+                return b.run_number - a.run_number;
+            }
+            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+        });
+        this.renderMontagesGrid(sortedMontages, manifest.event_id);
 
         // Update counts
         const videoCount = document.getElementById('videoCount');
         const montageCount = document.getElementById('montageCount');
 
         if (videoCount) videoCount.textContent = `${filteredRegular.length} videos`;
-        if (montageCount) montageCount.textContent = `${filteredMontages.length} montages`;
+        if (montageCount) montageCount.textContent = `${sortedMontages.length} montages`;
 
         // Hide empty sections
         const videosSection = document.getElementById('videosSection');
         const montagesSection = document.getElementById('montagesSection');
         if (videosSection) videosSection.style.display = filteredRegular.length > 0 ? '' : 'none';
-        if (montagesSection) montagesSection.style.display = filteredMontages.length > 0 ? '' : 'none';
+        if (montagesSection) montagesSection.style.display = sortedMontages.length > 0 ? '' : 'none';
 
         // Update sort button active state
         this.updateSortButtons();
@@ -877,16 +950,58 @@ const App = {
             return;
         }
 
-        container.innerHTML = montages.map(montage => `
-            <div class="montage-card" data-montage-id="${montage.id}">
-                <div class="montage-thumbnail">
-                    ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+        // Find fastest montage for the current variant
+        const allMontages = this.state.currentEvent?.content.montages || [];
+        const fastest = this.state.showFastest
+            ? this.getFastestMontage(allMontages, Filters.state.montageVariant)
+            : null;
+
+        container.innerHTML = montages.map(montage => {
+            const timeOverlay = montage.elapsed_time != null
+                ? `<span class="montage-time-overlay">${montage.elapsed_time.toFixed(2)}s</span>`
+                : '';
+            const isFastest = fastest && montage.run_number === fastest.run_number;
+            const fastestBadge = isFastest ? '<span class="montage-fastest-badge">Fastest</span>' : '';
+
+            if (fastest && !isFastest) {
+                // Side-by-side: fastest on left, this montage on right
+                const fastestTimeOverlay = fastest.elapsed_time != null
+                    ? `<span class="montage-time-overlay">${fastest.elapsed_time.toFixed(2)}s</span>`
+                    : '';
+                return `
+                    <div class="montage-card montage-card-compare" data-montage-id="${montage.id}">
+                        <div class="montage-compare-row">
+                            <div class="montage-thumbnail montage-thumb-half">
+                                ${fastest.thumb_url ? `<img src="${API.getMediaUrl(fastest.thumb_url, eventId)}" alt="Fastest">` : ''}
+                                ${fastestTimeOverlay}
+                                <span class="montage-fastest-badge">Fastest</span>
+                            </div>
+                            <div class="montage-thumbnail montage-thumb-half">
+                                ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+                                ${timeOverlay}
+                            </div>
+                        </div>
+                        <div class="montage-card-content">
+                            <p>Run ${montage.run_number || '?'} • ${this.formatTime(montage.timestamp)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Single card (fastest itself, or showFastest is off)
+            return `
+                <div class="montage-card" data-montage-id="${montage.id}">
+                    <div class="montage-thumbnail">
+                        ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+                        ${timeOverlay}
+                        ${fastestBadge}
+                    </div>
+                    <div class="montage-card-content">
+                        <p>${montage.elapsed_time != null ? `Run ${montage.run_number || '?'} • ` : ''}${this.formatTime(montage.timestamp)}</p>
+                    </div>
                 </div>
-                <div class="montage-card-content">
-                    <p>${this.formatTime(montage.timestamp)}</p>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Add click handlers
         container.querySelectorAll('.montage-card').forEach(card => {
@@ -896,7 +1011,7 @@ const App = {
                     ImageViewer.open(
                         API.getMediaUrl(montage.thumb_url, eventId),
                         API.getMediaUrl(montage.full_url, eventId),
-                        `Photo Montage - ${this.formatTime(montage.timestamp)}`
+                        `Photo Montage - Run ${montage.run_number || '?'}${montage.elapsed_time != null ? ` • ${montage.elapsed_time.toFixed(2)}s` : ''}`
                     );
                 }
             });

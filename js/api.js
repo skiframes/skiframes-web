@@ -27,9 +27,10 @@ const API = {
     /**
      * Fetch a single event's manifest
      */
-    async getEventManifest(eventId) {
+    async getEventManifest(eventId, bustCache = false) {
         try {
-            const response = await fetch(`${this.MEDIA_BASE}/events/${eventId}/manifest.json`);
+            const cacheBust = bustCache ? `?t=${Date.now()}` : '';
+            const response = await fetch(`${this.MEDIA_BASE}/events/${eventId}/manifest.json${cacheBust}`);
             if (!response.ok) throw new Error('Failed to fetch event manifest');
             const rawManifest = await response.json();
             return this.normalizeManifest(rawManifest, eventId);
@@ -61,6 +62,7 @@ const API = {
                         run_number: run.run_number,
                         variant: variantName,
                         timestamp: run.timestamp,
+                        elapsed_time: run.elapsed_time || null,
                         thumb_url: variant.thumbnail,
                         full_url: variant.fullres,
                         frame_count: variant.frame_count
