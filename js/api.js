@@ -62,6 +62,7 @@ const API = {
                         run_number: run.run_number,
                         variant: variantName,
                         timestamp: run.timestamp,
+                        elapsed_time: run.elapsed_time || null,
                         thumb_url: variant.thumbnail,
                         full_url: variant.fullres,
                         frame_count: variant.frame_count

@@ -7,7 +7,8 @@ const App = {
     state: {
         events: [],
         currentEvent: null,
-        sortBy: 'rank' // 'rank' or 'duration'
+        sortBy: 'rank', // 'rank' or 'duration'
+        showFastest: false
     },
 
     /**
@@ -350,6 +351,9 @@ const App = {
         // Set default montage variant to slowest speed
         this.initMontageSpeedFilter(manifest);
 
+        // Setup fastest skier toggle
+        this.setupFastestToggle(manifest);
+
         // Render content
         this.renderEventContent();
 
@@ -547,6 +551,32 @@ const App = {
         const match = variant.match(/(\d+)/);
         if (match) return `${match[1]}x`;
         return variant.replace(/^_/, '').replace(/later$/i, 'x');
+    },
+
+    setupFastestToggle(manifest) {
+        const montages = manifest.content.montages || [];
+        const hasTimingData = montages.some(m => m.elapsed_time != null);
+
+        const toggleBtn = document.getElementById('showFastestToggle');
+        if (!toggleBtn || !hasTimingData) return;
+
+        toggleBtn.style.display = 'inline-flex';
+        toggleBtn.addEventListener('click', () => {
+            this.state.showFastest = !this.state.showFastest;
+            toggleBtn.classList.toggle('active', this.state.showFastest);
+            toggleBtn.textContent = this.state.showFastest ? 'Hide Fastest' : 'Show Fastest';
+            this.renderEventContent();
+        });
+    },
+
+    getFastestMontage(montages, variant) {
+        const candidates = montages.filter(m =>
+            m.elapsed_time != null && (!variant || m.variant === variant)
+        );
+        if (candidates.length === 0) return null;
+        return candidates.reduce((fastest, m) =>
+            m.elapsed_time < fastest.elapsed_time ? m : fastest
+        );
     },
 
     setupDownloadListeners(manifest) {
@@ -920,16 +950,58 @@ const App = {
             return;
         }
 
-        container.innerHTML = montages.map(montage => `
-            <div class="montage-card" data-montage-id="${montage.id}">
-                <div class="montage-thumbnail">
-                    ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+        // Find fastest montage for the current variant
+        const allMontages = this.state.currentEvent?.content.montages || [];
+        const fastest = this.state.showFastest
+            ? this.getFastestMontage(allMontages, Filters.state.montageVariant)
+            : null;
+
+        container.innerHTML = montages.map(montage => {
+            const timeOverlay = montage.elapsed_time != null
+                ? `<span class="montage-time-overlay">${montage.elapsed_time.toFixed(2)}s</span>`
+                : '';
+            const isFastest = fastest && montage.run_number === fastest.run_number;
+            const fastestBadge = isFastest ? '<span class="montage-fastest-badge">Fastest</span>' : '';
+
+            if (fastest && !isFastest) {
+                // Side-by-side: fastest on left, this montage on right
+                const fastestTimeOverlay = fastest.elapsed_time != null
+                    ? `<span class="montage-time-overlay">${fastest.elapsed_time.toFixed(2)}s</span>`
+                    : '';
+                return `
+                    <div class="montage-card montage-card-compare" data-montage-id="${montage.id}">
+                        <div class="montage-compare-row">
+                            <div class="montage-thumbnail montage-thumb-half">
+                                ${fastest.thumb_url ? `<img src="${API.getMediaUrl(fastest.thumb_url, eventId)}" alt="Fastest">` : ''}
+                                ${fastestTimeOverlay}
+                                <span class="montage-fastest-badge">Fastest</span>
+                            </div>
+                            <div class="montage-thumbnail montage-thumb-half">
+                                ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+                                ${timeOverlay}
+                            </div>
+                        </div>
+                        <div class="montage-card-content">
+                            <p>Run ${montage.run_number || '?'} • ${this.formatTime(montage.timestamp)}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Single card (fastest itself, or showFastest is off)
+            return `
+                <div class="montage-card" data-montage-id="${montage.id}">
+                    <div class="montage-thumbnail">
+                        ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
+                        ${timeOverlay}
+                        ${fastestBadge}
+                    </div>
+                    <div class="montage-card-content">
+                        <p>${montage.elapsed_time != null ? `Run ${montage.run_number || '?'} • ` : ''}${this.formatTime(montage.timestamp)}</p>
+                    </div>
                 </div>
-                <div class="montage-card-content">
-                    <p>${this.formatTime(montage.timestamp)}</p>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Add click handlers
         container.querySelectorAll('.montage-card').forEach(card => {
@@ -939,7 +1011,7 @@ const App = {
                     ImageViewer.open(
                         API.getMediaUrl(montage.thumb_url, eventId),
                         API.getMediaUrl(montage.full_url, eventId),
-                        `Photo Montage - ${this.formatTime(montage.timestamp)}`
+                        `Photo Montage - Run ${montage.run_number || '?'}${montage.elapsed_time != null ? ` • ${montage.elapsed_time.toFixed(2)}s` : ''}`
                     );
                 }
             });
