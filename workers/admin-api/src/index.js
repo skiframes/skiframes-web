@@ -48,6 +48,10 @@ export default {
                 return await handleUpdateEvent(request, env);
             }
 
+            if (url.pathname === '/save-bib-state' && request.method === 'POST') {
+                return await handleSaveBibState(request, env);
+            }
+
             return new Response('Not Found', {
                 status: 404,
                 headers: corsHeaders(env, request)
@@ -242,6 +246,38 @@ async function handleSaveBannerConfig(request, env) {
     } catch (e) {
         console.error('CloudFront invalidation failed:', e);
         // Don't fail the request if invalidation fails
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(env, request)
+        }
+    });
+}
+
+/**
+ * Handle saving shared bib state (crowdsourced from live viewers)
+ */
+async function handleSaveBibState(request, env) {
+    const data = await request.json();
+
+    const bibState = {
+        bib: data.bib || null,
+        run: data.run || 1,
+        timestamp: new Date().toISOString()
+    };
+
+    await putToS3(env, 'config/bib-state.json', JSON.stringify(bibState), {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+
+    // Invalidate CloudFront cache so all viewers get the update fast
+    try {
+        await invalidateCloudFront(env, '/config/bib-state.json');
+    } catch (e) {
+        console.error('CloudFront invalidation failed:', e);
     }
 
     return new Response(JSON.stringify({ success: true }), {

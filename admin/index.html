@@ -287,6 +287,13 @@
                             <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Race Start Time (for DVR jump button)</label>
                             <input type="datetime-local" id="bannerRaceStart" style="padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);">
                         </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="startListEnabled" style="width: 18px; height: 18px;" autocomplete="off">
+                                <span style="font-weight: 600;">Show Start List on Live Page</span>
+                            </label>
+                            <span id="startListStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
+                        </div>
                     </div>
                     <div>
                         <button class="btn btn-primary" onclick="Admin.saveBannerConfig()">Save Banner Settings</button>
@@ -427,6 +434,8 @@
                     document.getElementById('bannerRaceStart').value = local.toISOString().slice(0, 16);
                 }
                 document.getElementById('bannerStatus').textContent = config.enabled ? '(Currently visible)' : '(Currently hidden)';
+                document.getElementById('startListEnabled').checked = config.startListEnabled !== false;
+                document.getElementById('startListStatus').textContent = config.startListEnabled !== false ? '(Visible)' : '(Hidden)';
             } catch (error) {
                 console.error('Error loading banner config:', error);
                 document.getElementById('bannerStatus').textContent = '(Error loading config)';
@@ -439,7 +448,8 @@
                 title: document.getElementById('bannerTitle').value,
                 subtitle: document.getElementById('bannerSubtitle').value,
                 raceStartTime: document.getElementById('bannerRaceStart').value ?
-                    new Date(document.getElementById('bannerRaceStart').value).toISOString() : null
+                    new Date(document.getElementById('bannerRaceStart').value).toISOString() : null,
+                startListEnabled: document.getElementById('startListEnabled').checked
             };
 
             this.showLoading('Saving banner settings...');
@@ -458,6 +468,7 @@
 
                 this.showToast('Banner settings saved', 'success');
                 document.getElementById('bannerStatus').textContent = config.enabled ? '(Currently visible)' : '(Currently hidden)';
+                document.getElementById('startListStatus').textContent = config.startListEnabled ? '(Visible)' : '(Hidden)';
             } catch (error) {
                 console.error('Save error:', error);
                 this.showToast('Failed to save: ' + error.message, 'error');

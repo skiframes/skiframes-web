@@ -47,17 +47,309 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(0.9); }
         }
-        .video-wrapper {
-            max-width: 1200px;
+
+        /* Layout: start list + video side by side */
+        .live-layout {
+            display: flex;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 24px;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        /* Start List Sidebar */
+        .startlist-panel {
+            width: 340px;
+            min-width: 340px;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 160px);
+        }
+        .startlist-header {
+            background: var(--surface);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 12px 16px;
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+        }
+        .startlist-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .crowdsource-note {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .search-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 13px;
+        }
+        .search-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+        }
+        .search-row .search-icon {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .athlete-row.search-match {
+            background: #fef9c3 !important;
+            border-left: 3px solid #eab308;
+            opacity: 1 !important;
+        }
+        .startlist-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .startlist-controls label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .startlist-controls input[type="number"] {
+            width: 64px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .bib-set-btn {
+            padding: 6px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .bib-set-btn:hover { background: #1d4ed8; }
+        .nav-buttons {
+            display: none;
+        }
+        .dvr-legend {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 4px 8px;
+            background: var(--surface);
+            border-radius: var(--radius) var(--radius) 0 0;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .dvr-legend kbd {
+            display: inline-block;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-family: monospace;
+            background: #e2e8f0;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .dvr-skip-buttons {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom: none;
+        }
+        .dvr-skip-buttons .skip-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .dvr-skip-btn {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            background: var(--background);
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.1s;
+        }
+        .dvr-skip-btn:hover { background: #e2e8f0; }
+        .dvr-skip-btn:active { background: #cbd5e1; }
+        .dvr-skip-btn.fwd { background: #eff6ff; border-color: #bfdbfe; }
+        .dvr-skip-btn.fwd:hover { background: #dbeafe; }
+        /* old nav-btn removed - replaced by dvr-skip-buttons */
+        .run-toggle {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+        .run-toggle button {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            background: var(--background);
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .run-toggle button.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .startlist-status {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+        .auto-detect-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .auto-detect-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .auto-detect-badge.inactive {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .auto-detect-badge .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .startlist-body {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--surface);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            box-shadow: var(--shadow);
+        }
+
+        /* Class group header */
+        .class-group-header {
+            position: sticky;
+            top: 0;
+            background: #1e293b;
+            color: white;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .class-group-header .class-time {
+            font-weight: 400;
+            opacity: 0.7;
+            font-size: 11px;
+        }
+
+        /* Athlete row */
+        .athlete-row {
+            display: flex;
+            align-items: center;
+            padding: 5px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+        .athlete-row:hover {
+            background: var(--background);
+        }
+        .athlete-row.done {
+            opacity: 0.4;
+        }
+        .athlete-row.current {
+            background: #fef3c7;
+            font-weight: 600;
+            border-left: 3px solid #f59e0b;
+            padding-left: 13px;
+        }
+        .athlete-row.on-deck {
+            background: #eff6ff;
+            border-left: 3px solid var(--primary);
+            padding-left: 13px;
+        }
+        .athlete-row .bib {
+            width: 36px;
+            font-weight: 700;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+        .athlete-row .name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .athlete-row .club {
+            width: 80px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .athlete-row .est-time {
+            width: 64px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+        .athlete-row.current .est-time {
+            color: #b45309;
+            font-weight: 700;
+        }
+
+        /* Video area */
+        .video-area {
+            flex: 1;
+            min-width: 0;
         }
         .video-container-live {
             position: relative;
             width: 100%;
             padding-top: 56.25%; /* 16:9 */
             background: #000;
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            border-radius: 0;
             overflow: hidden;
             box-shadow: var(--shadow-lg);
         }
@@ -199,9 +491,9 @@
             font-size: 14px;
         }
         .stream-info {
-            max-width: 800px;
+            max-width: 1600px;
             margin: 32px auto;
-            padding: 0 24px;
+            padding: 0 16px;
         }
         .info-card {
             background: var(--surface);
@@ -244,6 +536,26 @@
         .btn-race-start:hover {
             background: #047857;
         }
+
+        /* Hide startlist when disabled */
+        .startlist-panel.hidden {
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .live-layout {
+                flex-direction: column;
+            }
+            .startlist-panel {
+                width: 100%;
+                min-width: 0;
+                max-height: 300px;
+                order: 2;
+            }
+            .video-area {
+                order: 1;
+            }
+        }
         @media (max-width: 768px) {
             .live-hero {
                 padding: 10px 16px;
@@ -251,8 +563,9 @@
             .live-hero h1 {
                 font-size: 16px;
             }
-            .video-wrapper {
-                padding: 16px;
+            .live-layout {
+                padding: 8px;
+                gap: 8px;
             }
             .stream-controls {
                 gap: 8px;
@@ -260,6 +573,9 @@
             .stream-controls .btn {
                 padding: 8px 12px;
                 font-size: 13px;
+            }
+            .startlist-panel {
+                max-height: 250px;
             }
         }
     </style>
@@ -288,39 +604,85 @@
             </div>
         </section>
 
-        <div class="video-wrapper">
-            <div class="video-container-live">
-                <video id="liveVideo" playsinline style="display: none;"></video>
-                <div id="offlineMessage" class="offline-message">
-                    <img src="/assets/Skiframes_logo.png" alt="Skiframes">
-                    <h2>Broadcast Not Live</h2>
-                    <p>The live stream is not currently active.</p>
-                    <div class="check-back">Check back during race events</div>
+        <div class="live-layout">
+            <!-- Start List Sidebar -->
+            <aside class="startlist-panel hidden" id="startlistPanel">
+                <div class="startlist-header">
+                    <h2>Start List</h2>
+                    <p class="crowdsource-note">Help us track who's on course! Set the current bib number and it updates for all viewers.</p>
+                    <div class="startlist-controls">
+                        <label>Bib:</label>
+                        <input type="number" id="currentBibInput" min="0" placeholder="--">
+                        <button class="bib-set-btn" id="bibSetBtn">Set</button>
+                        <div class="run-toggle">
+                            <button class="active" data-run="1" id="run1Btn">R1</button>
+                            <button data-run="2" id="run2Btn">R2</button>
+                        </div>
+                    </div>
+                    <div class="search-row">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="athleteSearch" placeholder="Search by bib # or name...">
+                    </div>
+                    <div class="nav-buttons" id="navButtons"></div>
+                    <div class="startlist-status" id="startlistStatus"></div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                        <span class="auto-detect-badge inactive" id="autoDetectBadge">
+                            <span class="pulse-dot" style="display:none;"></span>
+                            Auto-detect: off
+                        </span>
+                    </div>
                 </div>
-            </div>
+                <div class="startlist-body" id="startlistBody">
+                </div>
+            </aside>
 
-            <!-- DVR Controls -->
-            <div class="dvr-controls" id="dvrControls">
-                <div class="dvr-timeline" id="dvrTimeline">
-                    <div class="dvr-buffered" id="dvrBuffered"></div>
-                    <div class="dvr-progress" id="dvrProgress"></div>
-                    <div class="dvr-handle" id="dvrHandle"></div>
+            <!-- Video Area -->
+            <div class="video-area">
+                <div class="dvr-legend" id="dvrLegend" style="display:none;">
+                    DVR Playback: <kbd>←</kbd> / <kbd>→</kbd> seek 30s &nbsp;·&nbsp; <kbd>Space</kbd> pause &nbsp;·&nbsp; <kbd>L</kbd> go live &nbsp;·&nbsp; <kbd>F</kbd> fullscreen
                 </div>
-                <div class="dvr-time-info">
-                    <span class="dvr-current-time" id="currentTime">--:--:--</span>
-                    <span id="dvrWindow">DVR: -- available</span>
-                    <button class="dvr-live-badge" id="liveBadge">
-                        <span class="dot"></span>
-                        LIVE
-                    </button>
+                <div class="dvr-skip-buttons" id="dvrSkipButtons" style="display:none;">
+                    <button class="dvr-skip-btn" id="skipBack30" title="Back 30s">&laquo; 30s</button>
+                    <button class="dvr-skip-btn" id="skipBack5" title="Back 5s">&lsaquo; 5s</button>
+                    <button class="dvr-skip-btn" id="skipBack1" title="Back 1s">‹ 1s</button>
+                    <span class="skip-label">DVR Skip</span>
+                    <button class="dvr-skip-btn fwd" id="skipFwd1" title="Forward 1s">1s ›</button>
+                    <button class="dvr-skip-btn fwd" id="skipFwd5" title="Forward 5s">5s &rsaquo;</button>
+                    <button class="dvr-skip-btn fwd" id="skipFwd30" title="Forward 30s">30s &raquo;</button>
                 </div>
-            </div>
+                <div class="video-container-live">
+                    <video id="liveVideo" playsinline style="display: none;"></video>
+                    <div id="offlineMessage" class="offline-message">
+                        <img src="/assets/Skiframes_logo.png" alt="Skiframes">
+                        <h2>Broadcast Not Live</h2>
+                        <p>The live stream is not currently active.</p>
+                        <div class="check-back">Check back during race events</div>
+                    </div>
+                </div>
 
-            <div class="stream-controls">
-                <button id="raceStart" class="btn btn-race-start btn-sm">Jump to Race Start (10:30 AM)</button>
-                <button id="goLive" class="btn btn-primary btn-sm">Go Live</button>
-                <button id="fullscreenBtn" class="btn btn-secondary btn-sm">Fullscreen</button>
-                <span id="statusText" class="status-text"></span>
+                <!-- DVR Controls -->
+                <div class="dvr-controls" id="dvrControls">
+                    <div class="dvr-timeline" id="dvrTimeline">
+                        <div class="dvr-buffered" id="dvrBuffered"></div>
+                        <div class="dvr-progress" id="dvrProgress"></div>
+                        <div class="dvr-handle" id="dvrHandle"></div>
+                    </div>
+                    <div class="dvr-time-info">
+                        <span class="dvr-current-time" id="currentTime">--:--:--</span>
+                        <span id="dvrWindow">DVR: -- available</span>
+                        <button class="dvr-live-badge" id="liveBadge">
+                            <span class="dot"></span>
+                            LIVE
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stream-controls">
+                    <button id="raceStart" class="btn btn-race-start btn-sm">Jump to Race Start (10:30 AM)</button>
+                    <button id="goLive" class="btn btn-primary btn-sm">Go Live</button>
+                    <button id="fullscreenBtn" class="btn btn-secondary btn-sm">Fullscreen</button>
+                    <span id="statusText" class="status-text"></span>
+                </div>
             </div>
         </div>
 
@@ -355,13 +717,364 @@
     <script src="/js/api.js"></script>
 
     <script>
-        // Stream configuration
+        // ============================================================
+        // START LIST MODULE
+        // ============================================================
+        const StartList = {
+            data: null,
+            currentRun: 1,
+            currentBib: null,
+            flatOrder: [],       // flat array of {bib, first, last, club, className, estTime} in race order
+            bibToIndex: {},      // bib -> index in flatOrder
+
+            async load() {
+                try {
+                    const resp = await fetch('/start_list/start_list.json?t=' + Date.now());
+                    this.data = await resp.json();
+                    this.buildOrder();
+                    this.render();
+                    document.getElementById('startlistPanel').classList.remove('hidden');
+                } catch (e) {
+                    console.error('Failed to load start list:', e);
+                }
+            },
+
+            buildOrder() {
+                if (!this.data) return;
+                this.flatOrder = [];
+                this.bibToIndex = {};
+
+                // Class order: U12 Women, U12 Men, U14 Women, U14 Men
+                const classOrder = ['U12 Women', 'U12 Men', 'U14 Women', 'U14 Men'];
+
+                const run1Start = new Date(this.data.run1_start);
+                const run2Start = new Date(this.data.run2_start);
+                const interval = this.data.interval_seconds * 1000;
+
+                const runStart = this.currentRun === 1 ? run1Start : run2Start;
+                let offset = 0;
+
+                for (const className of classOrder) {
+                    const cls = this.data.classes.find(c => c.name === className);
+                    if (!cls) continue;
+
+                    let athletes = [...cls.athletes];
+                    if (this.currentRun === 2) {
+                        athletes = athletes.slice().reverse();
+                    }
+
+                    for (const a of athletes) {
+                        const estTime = new Date(runStart.getTime() + offset);
+                        this.flatOrder.push({
+                            bib: a.bib,
+                            first: a.first,
+                            last: a.last,
+                            club: a.club,
+                            className: className,
+                            estTime: estTime
+                        });
+                        this.bibToIndex[a.bib] = this.flatOrder.length - 1;
+                        offset += interval;
+                    }
+                }
+            },
+
+            render() {
+                const body = document.getElementById('startlistBody');
+                if (!this.flatOrder.length) {
+                    body.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary);">No start list data</div>';
+                    return;
+                }
+
+                let html = '';
+                let lastClass = '';
+                const currentIdx = this.currentBib != null ? this.bibToIndex[this.currentBib] : -1;
+
+                for (let i = 0; i < this.flatOrder.length; i++) {
+                    const a = this.flatOrder[i];
+
+                    // Class group header
+                    if (a.className !== lastClass) {
+                        const classStart = a.estTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        html += `<div class="class-group-header">
+                            <span>${a.className}</span>
+                            <span class="class-time">Est. ${classStart}</span>
+                        </div>`;
+                        lastClass = a.className;
+                    }
+
+                    // Row state
+                    let rowClass = 'athlete-row';
+                    if (currentIdx >= 0) {
+                        if (i < currentIdx) rowClass += ' done';
+                        else if (i === currentIdx) rowClass += ' current';
+                        else if (i === currentIdx + 1) rowClass += ' on-deck';
+                    }
+
+                    const timeStr = a.estTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+                    html += `<div class="${rowClass}" data-bib="${a.bib}" data-idx="${i}">
+                        <span class="bib">${a.bib}</span>
+                        <span class="name">${a.first} ${a.last}</span>
+                        <span class="club">${a.club}</span>
+                        <span class="est-time">${timeStr}</span>
+                    </div>`;
+                }
+
+                body.innerHTML = html;
+
+                // Scroll to current racer
+                if (currentIdx >= 0) {
+                    const currentRow = body.querySelector('.athlete-row.current');
+                    if (currentRow) {
+                        currentRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }
+
+                this.updateStatus();
+            },
+
+            updateStatus() {
+                const el = document.getElementById('startlistStatus');
+                if (this.currentBib == null) {
+                    el.textContent = 'Enter bib # of racer currently on course to sync schedule';
+                    return;
+                }
+                const idx = this.bibToIndex[this.currentBib];
+                if (idx == null) {
+                    el.textContent = `Bib ${this.currentBib} not found in start list`;
+                    return;
+                }
+                const remaining = this.flatOrder.length - idx - 1;
+                const a = this.flatOrder[idx];
+                el.textContent = `On course: #${a.bib} ${a.first} ${a.last} \u2022 ${remaining} remaining \u2022 Run ${this.currentRun}`;
+            },
+
+            setBib(bib, broadcast = false) {
+                if (bib === '' || bib == null) {
+                    this.currentBib = null;
+                } else {
+                    bib = parseInt(bib);
+                    if (isNaN(bib)) return;
+                    this.currentBib = bib;
+
+                    // Recalculate estimated times based on current bib and current real time
+                    // The current bib is on course NOW, so shift all estimated times accordingly
+                    const idx = this.bibToIndex[bib];
+                    if (idx != null) {
+                        const now = new Date();
+                        const interval = this.data.interval_seconds * 1000;
+                        for (let i = 0; i < this.flatOrder.length; i++) {
+                            this.flatOrder[i].estTime = new Date(now.getTime() + (i - idx) * interval);
+                        }
+                    }
+                }
+                this.render();
+
+                // Broadcast to S3 so all viewers sync
+                if (broadcast) {
+                    this.broadcastBib();
+                }
+            },
+
+            moveBy(delta) {
+                if (!this.flatOrder.length) return;
+                let idx = this.currentBib != null ? this.bibToIndex[this.currentBib] : -1;
+                if (idx == null || idx < 0) idx = 0;
+                else idx = Math.max(0, Math.min(this.flatOrder.length - 1, idx + delta));
+                const newBib = this.flatOrder[idx].bib;
+                document.getElementById('currentBibInput').value = newBib;
+                this.setBib(newBib, true);
+            },
+
+            async broadcastBib() {
+                // Push current bib to S3 via the admin API so all viewers sync
+                const data = {
+                    bib: this.currentBib,
+                    run: this.currentRun,
+                    timestamp: new Date().toISOString()
+                };
+                try {
+                    await fetch('https://skiframes-admin-api.avillach.workers.dev/save-bib-state', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } catch (e) {
+                    // Fallback: try direct S3 upload won't work from browser.
+                    // Silent fail - manual set still works locally.
+                    console.warn('Broadcast failed:', e);
+                }
+            },
+
+            setRun(run) {
+                this.currentRun = run;
+                document.getElementById('run1Btn').classList.toggle('active', run === 1);
+                document.getElementById('run2Btn').classList.toggle('active', run === 2);
+                this.currentBib = null;
+                document.getElementById('currentBibInput').value = '';
+                this.buildOrder();
+                this.render();
+            },
+
+            // =============================================================
+            // AUTO-DETECT: poll bib-detected.json from camera OCR
+            // =============================================================
+            autoDetectInterval: null,
+            lastAutoTimestamp: null,
+
+            startAutoDetect() {
+                const POLL_URL = 'https://media.skiframes.com/config/bib-detected.json';
+                const BIB_STATE_URL = 'https://media.skiframes.com/config/bib-state.json';
+                const POLL_INTERVAL = 4000; // 4 seconds
+
+                const badge = document.getElementById('autoDetectBadge');
+
+                this.autoDetectInterval = setInterval(async () => {
+                    // Poll shared bib state (crowdsourced from any viewer's Set button)
+                    try {
+                        const resp = await fetch(BIB_STATE_URL + '?t=' + Date.now());
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data.timestamp && data.timestamp !== this.lastAutoTimestamp) {
+                                const age = (Date.now() - new Date(data.timestamp).getTime()) / 1000;
+                                if (age < 60) {
+                                    this.lastAutoTimestamp = data.timestamp;
+
+                                    // Sync run if changed
+                                    if (data.run && data.run !== this.currentRun) {
+                                        this.setRun(data.run);
+                                    }
+
+                                    if (data.bib && this.bibToIndex[data.bib] != null && data.bib !== this.currentBib) {
+                                        console.log(`Synced bib from shared state: #${data.bib}`);
+                                        document.getElementById('currentBibInput').value = data.bib;
+                                        this.setBib(data.bib, false); // don't re-broadcast
+                                    }
+
+                                    badge.className = 'auto-detect-badge active';
+                                    badge.querySelector('.pulse-dot').style.display = '';
+                                    badge.childNodes[badge.childNodes.length - 1].textContent =
+                                        data.bib ? ` Synced: #${data.bib}` : ' Synced';
+                                    return; // shared state takes priority
+                                }
+                            }
+                        }
+                    } catch (e) {}
+
+                    // Fallback: poll camera OCR auto-detection
+                    try {
+                        const resp = await fetch(POLL_URL + '?t=' + Date.now());
+                        if (!resp.ok) return;
+                        const data = await resp.json();
+
+                        if (data.timestamp) {
+                            const age = (Date.now() - new Date(data.timestamp).getTime()) / 1000;
+                            if (age < 30) {
+                                badge.className = 'auto-detect-badge active';
+                                badge.querySelector('.pulse-dot').style.display = '';
+                                badge.childNodes[badge.childNodes.length - 1].textContent =
+                                    data.bib ? ` Auto: #${data.bib}` : ' Auto: scanning...';
+
+                                if (data.bib && this.bibToIndex[data.bib] != null && data.bib !== this.currentBib) {
+                                    document.getElementById('currentBibInput').value = data.bib;
+                                    this.setBib(data.bib, false);
+                                }
+                            } else {
+                                badge.className = 'auto-detect-badge inactive';
+                                badge.querySelector('.pulse-dot').style.display = 'none';
+                                badge.childNodes[badge.childNodes.length - 1].textContent = ' Waiting for sync...';
+                            }
+                        }
+                    } catch (e) {}
+                }, POLL_INTERVAL);
+
+                console.log('Auto-detect polling started');
+            },
+
+            stopAutoDetect() {
+                if (this.autoDetectInterval) {
+                    clearInterval(this.autoDetectInterval);
+                    this.autoDetectInterval = null;
+                }
+                const badge = document.getElementById('autoDetectBadge');
+                badge.className = 'auto-detect-badge inactive';
+                badge.querySelector('.pulse-dot').style.display = 'none';
+                badge.childNodes[badge.childNodes.length - 1].textContent = ' Auto-detect: off';
+            }
+        };
+
+        // Start list event listeners
+        document.getElementById('bibSetBtn').addEventListener('click', () => {
+            StartList.setBib(document.getElementById('currentBibInput').value, true);
+        });
+        document.getElementById('currentBibInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                StartList.setBib(e.target.value, true);
+            }
+        });
+        document.getElementById('run1Btn').addEventListener('click', () => { StartList.setRun(1); StartList.broadcastBib(); });
+        document.getElementById('run2Btn').addEventListener('click', () => { StartList.setRun(2); StartList.broadcastBib(); });
+
+        // DVR skip buttons: seek video by time offset
+        function dvrSkip(seconds) {
+            const video = document.getElementById('liveVideo');
+            if (video && video.readyState > 0) {
+                video.currentTime = Math.max(0, video.currentTime + seconds);
+            }
+        }
+        document.getElementById('skipBack30').addEventListener('click', () => dvrSkip(-30));
+        document.getElementById('skipBack5').addEventListener('click', () => dvrSkip(-5));
+        document.getElementById('skipBack1').addEventListener('click', () => dvrSkip(-1));
+        document.getElementById('skipFwd1').addEventListener('click', () => dvrSkip(1));
+        document.getElementById('skipFwd5').addEventListener('click', () => dvrSkip(5));
+        document.getElementById('skipFwd30').addEventListener('click', () => dvrSkip(30));
+
+        // Click on athlete row to set as current bib (broadcasts)
+        document.getElementById('startlistBody').addEventListener('click', (e) => {
+            const row = e.target.closest('.athlete-row');
+            if (row) {
+                const bib = row.dataset.bib;
+                document.getElementById('currentBibInput').value = bib;
+                StartList.setBib(parseInt(bib), true);
+                // Clear search on click-to-set
+                document.getElementById('athleteSearch').value = '';
+                document.querySelectorAll('.athlete-row.search-match').forEach(r => r.classList.remove('search-match'));
+            }
+        });
+
+        // Search by bib number or athlete name
+        document.getElementById('athleteSearch').addEventListener('input', (e) => {
+            const q = e.target.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.athlete-row');
+
+            // Clear previous highlights
+            rows.forEach(r => r.classList.remove('search-match'));
+
+            if (!q) return;
+
+            let firstMatch = null;
+            rows.forEach(row => {
+                const bib = row.dataset.bib;
+                const name = row.querySelector('.name')?.textContent.toLowerCase() || '';
+                if (bib === q || name.includes(q)) {
+                    row.classList.add('search-match');
+                    if (!firstMatch) firstMatch = row;
+                }
+            });
+
+            // Scroll to first match
+            if (firstMatch) {
+                firstMatch.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        });
+
+        // ============================================================
+        // STREAM / VIDEO PLAYER (unchanged logic)
+        // ============================================================
         const STREAM_URL = 'https://vwgvyk.egress.t7c7zl.mediapackagev2.us-east-1.amazonaws.com/out/v1/channel-group-FY/channel-FY/standard-hls/manifest.m3u8';
 
-        // Race start time - will be set from config
         let RACE_START = null;
-
-        // Track if stream should be enabled
         let streamEnabled = false;
 
         // Load live banner config and initialize page
@@ -381,19 +1094,31 @@
                             raceBtn.textContent = `Jump to Race Start (${timeStr})`;
                         }
                     }
-                    // Initialize player only when enabled
+                    document.getElementById('dvrLegend').style.display = '';
+                    document.getElementById('dvrSkipButtons').style.display = '';
                     initPlayer();
                 } else {
-                    // Banner disabled - show offline message, hide controls
                     document.getElementById('liveHero').style.display = 'none';
                     document.getElementById('dvrControls').style.display = 'none';
+                    document.getElementById('dvrLegend').style.display = 'none';
+                    document.getElementById('dvrSkipButtons').style.display = 'none';
                     document.querySelector('.stream-controls').style.display = 'none';
+                }
+
+                // Load start list if enabled in config (default: show it)
+                if (config.startListEnabled !== false) {
+                    await StartList.load();
+                    StartList.startAutoDetect();
                 }
             } catch (e) {
                 console.error('Error loading live config:', e);
                 document.getElementById('liveTitle').textContent = 'Live Stream';
                 document.getElementById('liveHero').style.display = '';
+                document.getElementById('dvrLegend').style.display = '';
+                document.getElementById('dvrSkipButtons').style.display = '';
                 initPlayer();
+                await StartList.load();
+                StartList.startAutoDetect();
             }
         })();
 
@@ -467,28 +1192,22 @@
             const current = video.currentTime;
             const duration = end - start;
 
-            // Calculate stream start time if not set
             if (!streamStartTime) {
                 streamStartTime = new Date(Date.now() - (end * 1000));
             }
 
-            // Update progress bar
             const progress = ((current - start) / duration) * 100;
             dvrProgress.style.width = `${Math.max(0, Math.min(100, progress))}%`;
             dvrHandle.style.left = `${Math.max(0, Math.min(100, progress))}%`;
 
-            // Update buffered indicator
             dvrBuffered.style.width = '100%';
 
-            // Update time display - show actual clock time
             const currentClockTime = new Date(streamStartTime.getTime() + (current * 1000));
             currentTimeEl.textContent = formatClockTime(currentClockTime);
 
-            // Update DVR window info
             const dvrMinutes = Math.floor(duration / 60);
             dvrWindowEl.textContent = `DVR: ${dvrMinutes} min available`;
 
-            // Update live badge
             const behindLive = end - current;
             if (behindLive < 15) {
                 liveBadge.classList.remove('behind');
@@ -546,7 +1265,6 @@
                 });
 
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native HLS support (Safari)
                 video.src = STREAM_URL;
                 video.addEventListener('loadedmetadata', function() {
                     updateStatus('LIVE', '');
@@ -570,7 +1288,6 @@
         }
 
         function jumpToRaceStart() {
-            // Calculate seconds from stream start to race start
             if (!RACE_START) {
                 statusText.textContent = 'Race start time not configured';
                 return;
@@ -589,7 +1306,6 @@
             const start = seekable.start(0);
             const end = seekable.end(seekable.length - 1);
 
-            // Calculate the video time that corresponds to race start
             const streamStartMs = streamStartTime.getTime();
             const raceStartMs = RACE_START.getTime();
             const targetTime = (raceStartMs - streamStartMs) / 1000;
@@ -607,7 +1323,7 @@
         }
 
         function toggleFullscreen() {
-            const container = document.querySelector('.video-wrapper');
+            const container = document.querySelector('.video-area');
             if (document.fullscreenElement) {
                 document.exitFullscreen();
             } else {
@@ -633,7 +1349,6 @@
         fullscreenBtn.addEventListener('click', toggleFullscreen);
         liveBadge.addEventListener('click', jumpToLive);
 
-        // DVR timeline interactions
         dvrTimeline.addEventListener('click', seekToPosition);
 
         dvrHandle.addEventListener('mousedown', (e) => {
@@ -651,7 +1366,6 @@
             isDragging = false;
         });
 
-        // Touch support for timeline
         dvrTimeline.addEventListener('touchstart', (e) => {
             isDragging = true;
             seekToPosition(e.touches[0]);
@@ -667,7 +1381,6 @@
             isDragging = false;
         });
 
-        // Update DVR controls periodically
         video.addEventListener('timeupdate', updateDVRControls);
         setInterval(updateDVRControls, 1000);
 
@@ -698,15 +1411,12 @@
             }
         });
 
-        // Reconnect on tab visibility change (only if stream enabled)
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden && !isLive && hls && streamEnabled) {
                 retryCount = 0;
                 hls.loadSource(STREAM_URL);
             }
         });
-
-        // Player initialization moved to loadConfig() - only starts if admin enabled
     </script>
 </body>
 </html>
