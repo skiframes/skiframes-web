@@ -347,6 +347,9 @@ const App = {
         // Setup download listeners
         this.setupDownloadListeners(manifest);
 
+        // Set default montage variant to slowest speed
+        this.initMontageSpeedFilter(manifest);
+
         // Render content
         this.renderEventContent();
 
@@ -469,6 +472,44 @@ const App = {
                 this.renderEventContent();
             });
         });
+    },
+
+    initMontageSpeedFilter(manifest) {
+        const montages = manifest.content.montages || [];
+        const variants = Filters.getVariantsSlowestFirst(montages);
+
+        if (variants.length === 0) return;
+
+        // Default to the slowest speed (first in sorted list)
+        Filters.state.montageVariant = variants[0];
+
+        this.renderMontageSpeedButtons(variants);
+    },
+
+    renderMontageSpeedButtons(variants) {
+        const container = document.getElementById('montageSpeedButtons');
+        if (!container || variants.length === 0) return;
+
+        container.innerHTML = variants.map(variant => {
+            const label = this.variantLabel(variant);
+            const isActive = Filters.state.montageVariant === variant;
+            return `<button class="speed-btn ${isActive ? 'active' : ''}" data-variant="${variant}">${label}</button>`;
+        }).join('');
+
+        container.querySelectorAll('.speed-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Filters.set('montageVariant', btn.dataset.variant);
+                container.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+    },
+
+    variantLabel(variant) {
+        if (!variant || variant === 'base') return 'Base';
+        const match = variant.match(/(\d+)/);
+        if (match) return `${match[1]}x`;
+        return variant.replace(/^_/, '').replace(/later$/i, 'x');
     },
 
     setupDownloadListeners(manifest) {

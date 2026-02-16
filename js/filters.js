@@ -14,7 +14,8 @@ const Filters = {
         eventType: '',
         discipline: '',
         dateFrom: '',
-        dateTo: ''
+        dateTo: '',
+        montageVariant: ''
     },
 
     /**
@@ -190,8 +191,34 @@ const Filters = {
                 }
             }
 
+            // Variant/speed filter
+            if (this.state.montageVariant && montage.variant) {
+                if (montage.variant !== this.state.montageVariant) {
+                    return false;
+                }
+            }
+
             return true;
         });
+    },
+
+    /**
+     * Extract unique variant names from montages, sorted slowest first
+     */
+    getVariantsSlowestFirst(montages) {
+        const variants = [...new Set(montages.map(m => m.variant).filter(Boolean))];
+        return variants.sort((a, b) => {
+            return this.variantSpeed(b) - this.variantSpeed(a);
+        });
+    },
+
+    /**
+     * Parse variant name to a numeric speed value (higher = slower/more spread)
+     */
+    variantSpeed(variant) {
+        if (!variant) return 0;
+        const match = variant.match(/(\d+)/);
+        return match ? parseInt(match[1]) : 0;
     },
 
     // ========================================

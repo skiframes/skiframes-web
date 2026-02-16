@@ -878,6 +878,40 @@ body {
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
+/* Montage Speed Filter */
+.speed-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-left: 16px;
+}
+
+.speed-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.speed-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.speed-btn:hover {
+    background: var(--background);
+    color: var(--text);
+}
+
+.speed-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
 /* Montage Card */
 .montages-grid {
     display: grid;
