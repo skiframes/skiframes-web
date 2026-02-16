@@ -373,7 +373,7 @@ const App = {
      * Poll manifest for new montages and update the page automatically
      */
     startMontagePolling(eventId) {
-        // Poll every 30 seconds
+        // Poll every 10 seconds
         this.montagePollingInterval = setInterval(async () => {
             try {
                 const updated = await API.getEventManifest(eventId, true);
@@ -400,7 +400,7 @@ const App = {
             } catch (e) {
                 // Silently ignore polling errors
             }
-        }, 30000);
+        }, 10000);
     },
 
     updateEventHeader(manifest) {
