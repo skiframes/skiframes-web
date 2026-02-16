@@ -364,6 +364,43 @@ const App = {
             document.getElementById('modalImage'),
             document.getElementById('imageModal')
         );
+
+        // Start auto-refresh polling for new montages
+        this.startMontagePolling(manifest.event_id);
+    },
+
+    /**
+     * Poll manifest for new montages and update the page automatically
+     */
+    startMontagePolling(eventId) {
+        // Poll every 30 seconds
+        this.montagePollingInterval = setInterval(async () => {
+            try {
+                const updated = await API.getEventManifest(eventId, true);
+                const currentCount = (this.state.currentEvent.content.montages || []).length;
+                const newCount = (updated.content.montages || []).length;
+
+                if (newCount > currentCount) {
+                    // Preserve current variant selection
+                    const currentVariant = Filters.state.montageVariant;
+
+                    this.state.currentEvent = updated;
+
+                    // Re-init speed buttons if new variants appeared
+                    const variants = Filters.getVariantsSlowestFirst(updated.content.montages || []);
+                    if (variants.length > 0) {
+                        if (!currentVariant || !variants.includes(currentVariant)) {
+                            Filters.state.montageVariant = variants[0];
+                        }
+                        this.renderMontageSpeedButtons(variants);
+                    }
+
+                    this.renderEventContent();
+                }
+            } catch (e) {
+                // Silently ignore polling errors
+            }
+        }, 30000);
     },
 
     updateEventHeader(manifest) {
@@ -611,23 +648,29 @@ const App = {
         const sortedRegular = this.sortVideos(filteredRegular);
         this.renderVideosGrid(sortedRegular, manifest.event_id, 'videosGrid', comparisonLookup);
 
-        // Render montages
+        // Render montages (latest first by run_number, then timestamp)
         const montages = manifest.content.montages || [];
         const filteredMontages = Filters.filterMontages(montages);
-        this.renderMontagesGrid(filteredMontages, manifest.event_id);
+        const sortedMontages = [...filteredMontages].sort((a, b) => {
+            if (a.run_number !== undefined && b.run_number !== undefined) {
+                return b.run_number - a.run_number;
+            }
+            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+        });
+        this.renderMontagesGrid(sortedMontages, manifest.event_id);
 
         // Update counts
         const videoCount = document.getElementById('videoCount');
         const montageCount = document.getElementById('montageCount');
 
         if (videoCount) videoCount.textContent = `${filteredRegular.length} videos`;
-        if (montageCount) montageCount.textContent = `${filteredMontages.length} montages`;
+        if (montageCount) montageCount.textContent = `${sortedMontages.length} montages`;
 
         // Hide empty sections
         const videosSection = document.getElementById('videosSection');
         const montagesSection = document.getElementById('montagesSection');
         if (videosSection) videosSection.style.display = filteredRegular.length > 0 ? '' : 'none';
-        if (montagesSection) montagesSection.style.display = filteredMontages.length > 0 ? '' : 'none';
+        if (montagesSection) montagesSection.style.display = sortedMontages.length > 0 ? '' : 'none';
 
         // Update sort button active state
         this.updateSortButtons();
