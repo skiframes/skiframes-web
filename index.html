@@ -28,7 +28,9 @@
                     <span id="liveBannerText">LIVE Broadcast</span>
                 </a>
                 <a href="#races" class="nav-link">Race Days</a>
-                <a href="#training" class="nav-link">Training</a>
+                <a href="#training" class="nav-link">Gate Training</a>
+                <a href="#freeskiing" class="nav-link">Free Skiing</a>
+                <a href="#test" class="nav-link">Test</a>
             </nav>
         </div>
     </header>
@@ -67,14 +69,19 @@
                         <option value="U12">U12</option>
                         <option value="U14">U14</option>
                         <option value="U16">U16</option>
+                        <option value="Scored">Scored</option>
+                        <option value="Masters">Masters</option>
+                        <option value="Free Ski">Free Ski</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="typeFilter">Type</label>
                     <select id="typeFilter" class="filter-select">
                         <option value="">All</option>
-                        <option value="race">Race Days</option>
-                        <option value="training">Training</option>
+                        <option value="race">Race</option>
+                        <option value="gate_training">Gate Training</option>
+                        <option value="free_skiing">Free Skiing</option>
+                        <option value="test">TEST</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -124,12 +131,32 @@
             </div>
         </section>
 
-        <!-- Training Sessions -->
+        <!-- Gate Training -->
         <section class="section" id="training">
             <div class="section-header">
-                <h2>Training Sessions</h2>
+                <h2>Gate Training</h2>
             </div>
             <div id="trainingEvents" class="events-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Free Skiing -->
+        <section class="section" id="freeskiing">
+            <div class="section-header">
+                <h2>Free Skiing</h2>
+            </div>
+            <div id="freeSkiingEvents" class="events-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- Test Sessions -->
+        <section class="section" id="test">
+            <div class="section-header">
+                <h2>Test Sessions</h2>
+            </div>
+            <div id="testEvents" class="events-grid">
                 <!-- Populated by JS -->
             </div>
         </section>

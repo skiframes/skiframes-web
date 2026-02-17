@@ -615,6 +615,42 @@ body {
     color: white;
 }
 
+.fps-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.fps-filter-buttons {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+}
+
+.fps-filter-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.fps-filter-btn:hover {
+    background: var(--background);
+    color: var(--text);
+}
+
+.fps-filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
 .results-count {
     margin-left: auto;
     color: var(--text-secondary);
@@ -1002,6 +1038,19 @@ body {
 .montage-thumbnail {
     aspect-ratio: 3/4;
     background: #1f2937;
+    position: relative;
+}
+
+.montage-fps-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .montage-thumbnail img {

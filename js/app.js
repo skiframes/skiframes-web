@@ -143,9 +143,17 @@ const App = {
         const raceEvents = sortedEvents.filter(e => e.event_type === 'race');
         this.renderEventGrid('raceEvents', raceEvents);
 
-        // Training events
-        const trainingEvents = sortedEvents.filter(e => e.event_type === 'training');
+        // Gate Training events (includes legacy 'training' type)
+        const trainingEvents = sortedEvents.filter(e => e.event_type === 'training' || e.event_type === 'gate_training');
         this.renderEventGrid('trainingEvents', trainingEvents);
+
+        // Free Skiing events
+        const freeSkiingEvents = sortedEvents.filter(e => e.event_type === 'free_skiing');
+        this.renderEventGrid('freeSkiingEvents', freeSkiingEvents);
+
+        // Test events
+        const testEvents = sortedEvents.filter(e => e.event_type === 'test');
+        this.renderEventGrid('testEvents', testEvents);
     },
 
     renderEventGrid(containerId, events) {
@@ -297,7 +305,7 @@ const App = {
      * Toggle visibility of event sections
      */
     toggleEventSections(show) {
-        ['recent', 'races', 'training'].forEach(id => {
+        ['recent', 'races', 'training', 'freeskiing', 'test'].forEach(id => {
             const section = document.getElementById(id);
             if (section) {
                 section.style.display = show ? 'block' : 'none';
@@ -454,6 +462,9 @@ const App = {
             }
         }
 
+        // FPS filter buttons - populated from montage data
+        this.populateFpsFilter(manifest);
+
         // Populate team dropdown for bulk download
         const teamDropdown = document.getElementById('teamDropdown');
         if (teamDropdown && manifest.teams) {
@@ -461,6 +472,50 @@ const App = {
                 <div class="dropdown-item" data-team="${team}">Download ${team}</div>
             `).join('');
         }
+    },
+
+    populateFpsFilter(manifest) {
+        const fpsGroup = document.getElementById('fpsFilterGroup');
+        const fpsButtons = document.getElementById('fpsFilterButtons');
+        if (!fpsGroup || !fpsButtons) return;
+
+        // Collect unique FPS values from montage data
+        const montages = (manifest.content && manifest.content.montages) || [];
+        const fpsValues = new Set();
+        montages.forEach(m => {
+            if (m.fps !== null && m.fps !== undefined) {
+                fpsValues.add(m.fps);
+            }
+        });
+
+        // Also use montage_fps_list from manifest if available
+        if (manifest.montage_fps_list) {
+            manifest.montage_fps_list.forEach(f => fpsValues.add(f));
+        }
+
+        if (fpsValues.size <= 1) {
+            fpsGroup.style.display = 'none';
+            return;
+        }
+
+        fpsGroup.style.display = 'flex';
+        const sorted = [...fpsValues].sort((a, b) => a - b);
+
+        // Add "All" button
+        fpsButtons.innerHTML = `<button class="fps-filter-btn active" data-fps="">All</button>` +
+            sorted.map(fps => {
+                const label = fps % 1 === 0 ? fps.toFixed(0) : fps.toFixed(1);
+                return `<button class="fps-filter-btn" data-fps="${fps}">${label}</button>`;
+            }).join('');
+
+        // Click handlers
+        fpsButtons.querySelectorAll('.fps-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fpsButtons.querySelectorAll('.fps-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Filters.set('fps', btn.dataset.fps);
+            });
+        });
     },
 
     setupEventFilters() {
@@ -497,6 +552,13 @@ const App = {
                 Filters.clear();
                 if (searchInput) searchInput.value = '';
                 document.querySelectorAll('.filter-select').forEach(s => s.value = '');
+                // Reset FPS filter buttons
+                const fpsButtons = document.getElementById('fpsFilterButtons');
+                if (fpsButtons) {
+                    fpsButtons.querySelectorAll('.fps-filter-btn').forEach(b => b.classList.remove('active'));
+                    const allBtn = fpsButtons.querySelector('[data-fps=""]');
+                    if (allBtn) allBtn.classList.add('active');
+                }
             });
         }
 

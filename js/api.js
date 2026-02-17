@@ -55,18 +55,25 @@ const API = {
         if (manifest.runs && Array.isArray(manifest.runs)) {
             const montages = [];
             manifest.runs.forEach((run, idx) => {
-                // Each run has variants (base, _2later, etc.)
+                // Each run has variants keyed by FPS (e.g., "4.0fps") or legacy keys ("base", "_2later")
+                let variantIdx = 0;
                 for (const [variantName, variant] of Object.entries(run.variants || {})) {
+                    // Extract FPS from variant key (e.g., "4.0fps" -> 4.0)
+                    const fpsMatch = variantName.match(/^(\d+\.?\d*)fps$/);
+                    const fps = fpsMatch ? parseFloat(fpsMatch[1]) : null;
+
                     montages.push({
-                        id: `m${String(idx * 10 + Object.keys(run.variants).indexOf(variantName) + 1).padStart(3, '0')}`,
+                        id: `m${String(idx * 100 + variantIdx + 1).padStart(4, '0')}`,
                         run_number: run.run_number,
                         variant: variantName,
+                        fps: fps,
                         timestamp: run.timestamp,
                         elapsed_time: run.elapsed_time || null,
                         thumb_url: variant.thumbnail,
                         full_url: variant.fullres,
                         frame_count: variant.frame_count
                     });
+                    variantIdx++;
                 }
             });
 
@@ -81,6 +88,7 @@ const API = {
                 location: 'Ragged Mountain, NH',
                 teams: [],
                 categories: manifest.group ? [manifest.group] : [],
+                montage_fps_list: manifest.montage_fps_list || [],
                 content: {
                     videos: [],
                     montages: montages

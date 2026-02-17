@@ -108,9 +108,12 @@ const Filters = {
                 return false;
             }
 
-            // Category filter
-            if (this.state.category && event.categories && !event.categories.includes(this.state.category)) {
-                return false;
+            // Category filter (case-insensitive)
+            if (this.state.category && event.categories) {
+                const catLower = this.state.category.toLowerCase();
+                if (!event.categories.some(c => c.toLowerCase() === catLower)) {
+                    return false;
+                }
             }
 
             // Search filter - check event name
@@ -182,6 +185,14 @@ const Filters = {
      */
     filterMontages(montages) {
         return montages.filter(montage => {
+            // FPS filter
+            if (this.state.fps) {
+                const filterFps = parseFloat(this.state.fps);
+                if (montage.fps !== null && montage.fps !== filterFps) {
+                    return false;
+                }
+            }
+
             // Search filter
             if (this.state.search) {
                 const searchLower = this.state.search.toLowerCase();
