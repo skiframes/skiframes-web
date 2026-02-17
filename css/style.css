@@ -1226,6 +1226,227 @@ body {
 }
 
 /* ========================================
+   Fullscreen Montage Viewer
+   ======================================== */
+
+.montage-viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+}
+
+.montage-viewer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.montage-viewer-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.montage-viewer-title h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.montage-counter {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.montage-viewer-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.montage-compare-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.montage-compare-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.montage-compare-btn.active {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: white;
+}
+
+.montage-viewer-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+    line-height: 1;
+}
+
+.montage-viewer-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.montage-viewer-body {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.montage-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 36px;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.15s;
+    user-select: none;
+}
+
+.montage-nav:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.montage-nav:disabled {
+    opacity: 0.15;
+    cursor: default;
+}
+
+.montage-nav-prev { left: 12px; }
+.montage-nav-next { right: 12px; }
+
+.montage-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+    padding: 0 72px;
+}
+
+.montage-panel {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    flex: 1;
+    min-width: 0;
+}
+
+.montage-panel img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.montage-display:not(.split-view) .montage-panel-current {
+    flex: 1;
+}
+
+.montage-display.split-view .montage-panel {
+    flex: 1;
+}
+
+.montage-panel-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: #16a34a;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    z-index: 5;
+}
+
+.montage-panel-info {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    z-index: 5;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 768px) {
+    .montage-viewer-toolbar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
+    }
+    .montage-display {
+        padding: 0 48px;
+    }
+    .montage-display.split-view {
+        flex-direction: column;
+        gap: 2px;
+    }
+    .montage-nav {
+        width: 36px;
+        height: 60px;
+        font-size: 28px;
+    }
+    .montage-nav-prev { left: 4px; }
+    .montage-nav-next { right: 4px; }
+}
+
+/* ========================================
    Download Progress
    ======================================== */
 

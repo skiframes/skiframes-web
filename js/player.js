@@ -251,38 +251,193 @@ const Player = {
     }
 };
 
-// Image viewer
+// Fullscreen Montage Viewer
 const ImageViewer = {
     modal: null,
-    image: null,
+    currentImg: null,
+    fastestImg: null,
+
+    // State
+    montages: [],
+    currentIndex: 0,
+    fastestMontage: null,
+    eventId: null,
+    compareMode: false,
 
     init(imageElement, modalElement) {
-        this.image = imageElement;
+        this.currentImg = imageElement;
         this.modal = modalElement;
+        this.fastestImg = document.getElementById('montageFastestImg');
+        this.setupControls();
+        this.setupKeyboard();
     },
 
-    open(thumbUrl, fullUrl, title) {
-        if (!this.image || !this.modal) return;
+    open(index, montages, fastestMontage, eventId) {
+        if (!this.modal) return;
 
-        this.image.src = thumbUrl; // Show thumb first for fast load
-        document.getElementById('imageTitle').textContent = title;
-        document.getElementById('downloadImage').href = fullUrl;
+        this.montages = montages;
+        this.currentIndex = index;
+        this.fastestMontage = fastestMontage;
+        this.eventId = eventId;
+        this.compareMode = false;
+
+        // Reset compare UI
+        const compareBtn = document.getElementById('compareToggle');
+        if (compareBtn) {
+            compareBtn.classList.remove('active');
+            compareBtn.textContent = 'Compare with Fastest';
+        }
+        const fastestPanel = document.getElementById('montageFastestPanel');
+        if (fastestPanel) fastestPanel.style.display = 'none';
+        const display = document.getElementById('montageDisplay');
+        if (display) display.classList.remove('split-view');
 
         this.modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-
-        // Load full resolution in background
-        const fullImg = new Image();
-        fullImg.onload = () => {
-            this.image.src = fullUrl;
-        };
-        fullImg.src = fullUrl;
+        this.loadMontage(index);
     },
 
     close() {
         if (!this.modal) return;
         this.modal.style.display = 'none';
         document.body.style.overflow = '';
+        if (this.currentImg) this.currentImg.src = '';
+        if (this.fastestImg) this.fastestImg.src = '';
+    },
+
+    loadMontage(index) {
+        const montage = this.montages[index];
+        if (!montage) return;
+        this.currentIndex = index;
+
+        // Title
+        const title = `Run ${montage.run_number || '?'}` +
+            (montage.elapsed_time != null ? ` \u2022 ${montage.elapsed_time.toFixed(2)}s` : '');
+        const titleEl = document.getElementById('imageTitle');
+        if (titleEl) titleEl.textContent = title;
+
+        // Counter
+        const counterEl = document.getElementById('montageCounter');
+        if (counterEl) counterEl.textContent = `${index + 1} / ${this.montages.length}`;
+
+        // Download
+        const fullUrl = API.getMediaUrl(montage.full_url, this.eventId);
+        const downloadEl = document.getElementById('downloadImage');
+        if (downloadEl) downloadEl.href = fullUrl;
+
+        // Progressive load
+        const thumbUrl = API.getMediaUrl(montage.thumb_url, this.eventId);
+        if (this.currentImg) {
+            this.currentImg.src = thumbUrl;
+            const full = new Image();
+            full.onload = () => {
+                if (this.currentIndex === index) this.currentImg.src = fullUrl;
+            };
+            full.src = fullUrl;
+        }
+
+        // Current info overlay
+        const currentInfo = document.getElementById('montageCurrentInfo');
+        if (currentInfo) {
+            currentInfo.textContent = montage.elapsed_time != null
+                ? `${montage.elapsed_time.toFixed(2)}s` : '';
+        }
+
+        // Nav buttons
+        const prevBtn = document.getElementById('montagePrev');
+        const nextBtn = document.getElementById('montageNext');
+        if (prevBtn) prevBtn.disabled = (index <= 0);
+        if (nextBtn) nextBtn.disabled = (index >= this.montages.length - 1);
+
+        // Compare button: always visible if fastest exists (even when viewing fastest itself)
+        const compareBtn = document.getElementById('compareToggle');
+        if (compareBtn) {
+            compareBtn.style.display = this.fastestMontage ? 'inline-flex' : 'none';
+        }
+
+        if (this.compareMode) this.loadFastestPanel();
+    },
+
+    loadFastestPanel() {
+        if (!this.fastestMontage || !this.fastestImg) return;
+        const f = this.fastestMontage;
+        const thumbUrl = API.getMediaUrl(f.thumb_url, this.eventId);
+        const fullUrl = API.getMediaUrl(f.full_url, this.eventId);
+
+        this.fastestImg.src = thumbUrl;
+        const full = new Image();
+        full.onload = () => {
+            if (this.compareMode) this.fastestImg.src = fullUrl;
+        };
+        full.src = fullUrl;
+
+        const info = document.getElementById('montageFastestInfo');
+        if (info) {
+            info.textContent = f.elapsed_time != null
+                ? `${f.elapsed_time.toFixed(2)}s (Fastest)` : 'Fastest';
+        }
+    },
+
+    navigate(delta) {
+        const idx = this.currentIndex + delta;
+        if (idx < 0 || idx >= this.montages.length) return;
+        this.loadMontage(idx);
+    },
+
+    toggleComparison() {
+        this.compareMode = !this.compareMode;
+        const display = document.getElementById('montageDisplay');
+        const panel = document.getElementById('montageFastestPanel');
+        const btn = document.getElementById('compareToggle');
+
+        if (display) display.classList.toggle('split-view', this.compareMode);
+        if (panel) panel.style.display = this.compareMode ? 'flex' : 'none';
+        if (btn) {
+            btn.classList.toggle('active', this.compareMode);
+            btn.textContent = this.compareMode ? 'Hide Fastest' : 'Compare with Fastest';
+        }
+        if (this.compareMode) this.loadFastestPanel();
+    },
+
+    setupControls() {
+        if (!this.modal) return;
+        const close = this.modal.querySelector('.montage-viewer-close');
+        if (close) close.addEventListener('click', () => this.close());
+
+        const prev = document.getElementById('montagePrev');
+        const next = document.getElementById('montageNext');
+        if (prev) prev.addEventListener('click', () => this.navigate(-1));
+        if (next) next.addEventListener('click', () => this.navigate(1));
+
+        const compare = document.getElementById('compareToggle');
+        if (compare) compare.addEventListener('click', () => this.toggleComparison());
+
+        // Click on dark area outside images to close
+        const body = this.modal.querySelector('.montage-viewer-body');
+        if (body) {
+            body.addEventListener('click', (e) => {
+                if (e.target === body || e.target.classList.contains('montage-display')) {
+                    this.close();
+                }
+            });
+        }
+    },
+
+    setupKeyboard() {
+        document.addEventListener('keydown', (e) => {
+            if (!this.modal || this.modal.style.display === 'none') return;
+            switch (e.key) {
+                case 'Escape': this.close(); break;
+                case 'ArrowLeft': e.preventDefault(); this.navigate(-1); break;
+                case 'ArrowRight': e.preventDefault(); this.navigate(1); break;
+                case 'c': case 'C':
+                    if (this.fastestMontage) {
+                        e.preventDefault();
+                        this.toggleComparison();
+                    }
+                    break;
+            }
+        });
     }
 };
 

@@ -104,7 +104,7 @@
         <!-- Montages Section -->
         <section id="montagesSection" class="content-section">
             <div class="view-toggle">
-                <span class="speed-label">Speed:</span>
+                <span class="speed-label">Frames per second:</span>
                 <div id="montageSpeedButtons" class="speed-buttons">
                     <!-- Populated by JS -->
                 </div>
@@ -148,15 +148,34 @@
         </div>
     </div>
 
-    <!-- Image Modal -->
-    <div id="imageModal" class="modal" style="display: none;">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content image-modal-content">
-            <button class="modal-close">&times;</button>
-            <img id="modalImage" src="" alt="">
-            <div class="image-info">
+    <!-- Fullscreen Montage Viewer -->
+    <div id="imageModal" class="montage-viewer" style="display: none;">
+        <div class="montage-viewer-toolbar">
+            <div class="montage-viewer-title">
                 <h3 id="imageTitle"></h3>
-                <a id="downloadImage" href="" download class="btn btn-primary">Download Full Resolution</a>
+                <span id="montageCounter" class="montage-counter"></span>
+            </div>
+            <div class="montage-viewer-actions">
+                <button id="compareToggle" class="btn btn-sm montage-compare-btn" style="display: none;">
+                    Compare with Fastest
+                </button>
+                <a id="downloadImage" href="" download class="btn btn-primary btn-sm">Download</a>
+                <button class="montage-viewer-close">&times;</button>
+            </div>
+        </div>
+        <div class="montage-viewer-body">
+            <button id="montagePrev" class="montage-nav montage-nav-prev" aria-label="Previous">&#8249;</button>
+            <button id="montageNext" class="montage-nav montage-nav-next" aria-label="Next">&#8250;</button>
+            <div id="montageDisplay" class="montage-display">
+                <div id="montageFastestPanel" class="montage-panel montage-panel-fastest" style="display: none;">
+                    <div class="montage-panel-label">Fastest</div>
+                    <img id="montageFastestImg" src="" alt="Fastest montage">
+                    <div id="montageFastestInfo" class="montage-panel-info"></div>
+                </div>
+                <div id="montageCurrentPanel" class="montage-panel montage-panel-current">
+                    <img id="modalImage" src="" alt="Current montage">
+                    <div id="montageCurrentInfo" class="montage-panel-info"></div>
+                </div>
             </div>
         </div>
     </div>

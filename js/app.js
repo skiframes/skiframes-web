@@ -610,8 +610,12 @@ const App = {
 
     variantLabel(variant) {
         if (!variant || variant === 'base') return 'Base';
-        const match = variant.match(/(\d+)/);
-        if (match) return `${match[1]}x`;
+        const match = variant.match(/(\d+\.?\d*)/);
+        if (match) {
+            const num = parseFloat(match[1]);
+            const label = num % 1 === 0 ? num.toFixed(0) : num.toFixed(1);
+            return `${label} fps`;
+        }
         return variant.replace(/^_/, '').replace(/later$/i, 'x');
     },
 
@@ -1070,11 +1074,10 @@ const App = {
             card.addEventListener('click', () => {
                 const montage = montages.find(m => m.id === card.dataset.montageId);
                 if (montage) {
-                    ImageViewer.open(
-                        API.getMediaUrl(montage.thumb_url, eventId),
-                        API.getMediaUrl(montage.full_url, eventId),
-                        `Photo Montage - Run ${montage.run_number || '?'}${montage.elapsed_time != null ? ` • ${montage.elapsed_time.toFixed(2)}s` : ''}`
-                    );
+                    const clickedIndex = montages.indexOf(montage);
+                    const allMontages = this.state.currentEvent?.content.montages || [];
+                    const fastest = this.getFastestMontage(allMontages, Filters.state.montageVariant);
+                    ImageViewer.open(clickedIndex, montages, fastest, eventId);
                 }
             });
         });
