@@ -62,6 +62,10 @@ export default {
                 return await handleGetDevices(request, env);
             }
 
+            if (url.pathname === '/save-clusters' && request.method === 'POST') {
+                return await handleSaveClusters(request, env);
+            }
+
             return new Response('Not Found', {
                 status: 404,
                 headers: corsHeaders(env, request)
@@ -376,6 +380,34 @@ async function handleGetDevices(request, env) {
     });
 
     return new Response(JSON.stringify({ devices: deviceList }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(env, request)
+        }
+    });
+}
+
+/**
+ * Handle saving athlete cluster assignments for an event.
+ * Stores clusters.json alongside event data on S3.
+ */
+async function handleSaveClusters(request, env) {
+    const { eventId, data } = await request.json();
+
+    if (!eventId || !data) {
+        return new Response('Missing eventId or data', {
+            status: 400,
+            headers: corsHeaders(env, request)
+        });
+    }
+
+    const key = `events/${eventId}/clusters.json`;
+    await putToS3(env, key, JSON.stringify(data, null, 2), {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+
+    return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: {
             'Content-Type': 'application/json',

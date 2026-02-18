@@ -1686,3 +1686,188 @@ body {
         display: none;
     }
 }
+
+/* ========================================
+   Athlete Re-Identification View
+   ======================================== */
+
+.montage-view-toggle {
+    display: flex;
+    gap: 2px;
+    margin-right: 16px;
+    background: var(--border);
+    border-radius: var(--radius);
+    padding: 2px;
+}
+
+.view-btn {
+    padding: 5px 14px;
+    border: none;
+    background: transparent;
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.view-btn:hover {
+    color: var(--text);
+}
+
+.view-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.athlete-view {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.athlete-sensitivity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.athlete-sensitivity input[type="range"] {
+    width: 200px;
+    accent-color: var(--primary);
+}
+
+.athlete-sensitivity span {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.athlete-card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+}
+
+.athlete-card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.athlete-card-header:hover {
+    background: var(--background);
+}
+
+.athlete-avatar {
+    width: 56px;
+    height: 72px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--background);
+}
+
+.athlete-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.athlete-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+}
+
+.athlete-label {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    outline: none;
+    border-bottom: 1px dashed transparent;
+    cursor: text;
+    line-height: 1.3;
+}
+
+.athlete-label:hover {
+    border-bottom-color: var(--border);
+}
+
+.athlete-label:focus {
+    border-bottom-color: var(--primary);
+}
+
+.athlete-run-count,
+.athlete-best-time {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.athlete-best-time {
+    font-weight: 500;
+    color: #16a34a;
+}
+
+.athlete-expand-icon {
+    font-size: 14px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.athlete-runs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    padding: 0 20px 16px;
+}
+
+.athlete-runs .montage-card {
+    cursor: pointer;
+}
+
+/* Drag and drop states */
+.montage-card.dragging {
+    opacity: 0.5;
+}
+
+.athlete-card.drag-target {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+    background: #eff6ff;
+}
+
+.athlete-card.drag-target .athlete-card-header {
+    background: #dbeafe;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .montage-view-toggle {
+        margin-right: 8px;
+    }
+
+    .athlete-sensitivity input[type="range"] {
+        width: 120px;
+    }
+
+    .athlete-runs {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}

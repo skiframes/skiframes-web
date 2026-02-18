@@ -8,7 +8,12 @@ const App = {
         events: [],
         currentEvent: null,
         sortBy: 'rank', // 'rank' or 'duration'
-        showFastest: false
+        showFastest: false,
+        montageView: 'grid',      // 'grid' or 'athlete'
+        athleteClusters: null,     // Clustering result
+        savedClusters: null,       // Loaded from S3 (manual overrides)
+        manualOverrides: {},       // Run reassignments by user
+        clusterThreshold: 0.82    // Clustering sensitivity
     },
 
     /**
@@ -363,6 +368,9 @@ const App = {
         // Setup fastest skier toggle
         this.setupFastestToggle(manifest);
 
+        // Setup athlete re-identification view (if embeddings available)
+        this.initAthleteView(manifest);
+
         // Render content
         this.renderEventContent();
 
@@ -406,6 +414,19 @@ const App = {
                             Filters.state.montageVariant = variants[0];
                         }
                         this.renderMontageSpeedButtons(variants);
+                    }
+
+                    // Re-cluster if new montages have embeddings
+                    const newMontages = updated.content.montages || [];
+                    const hasEmbeddings = newMontages.some(m => m.embedding && m.embedding.length > 0);
+                    if (hasEmbeddings && typeof Clustering !== 'undefined') {
+                        // Show toggle if it wasn't visible before
+                        const toggle = document.getElementById('montageViewToggle');
+                        if (toggle) toggle.style.display = '';
+
+                        this.state.athleteClusters = Clustering.cluster(
+                            newMontages, this.state.clusterThreshold, this.state.savedClusters
+                        );
                     }
 
                     this.renderEventContent();
@@ -763,6 +784,11 @@ const App = {
             return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
         });
         this.renderMontagesGrid(sortedMontages, manifest.event_id);
+
+        // Also re-render athlete view if it's active
+        if (this.state.montageView === 'athlete' && this.state.athleteClusters) {
+            this.renderAthleteView();
+        }
 
         // Update counts
         const videoCount = document.getElementById('videoCount');
@@ -1151,6 +1177,344 @@ const App = {
             option.textContent = team;
             select.appendChild(option);
         });
+    },
+
+    // ========================================
+    // Athlete Re-Identification View
+    // ========================================
+
+    /**
+     * Initialize athlete view if embeddings are available in montage data.
+     * Shows the Grid/By Athlete toggle and loads saved clusters from S3.
+     */
+    async initAthleteView(manifest) {
+        const montages = manifest.content?.montages || [];
+        const hasEmbeddings = montages.some(m => m.embedding && m.embedding.length > 0);
+
+        if (!hasEmbeddings || montages.length < 2) return;
+
+        // Show the view toggle
+        const toggle = document.getElementById('montageViewToggle');
+        if (toggle) toggle.style.display = '';
+
+        // Load saved clusters (manual overrides, labels)
+        if (typeof Clustering !== 'undefined') {
+            this.state.savedClusters = await Clustering.loadSaved(manifest.event_id);
+            if (this.state.savedClusters?.manual_overrides) {
+                this.state.manualOverrides = this.state.savedClusters.manual_overrides;
+            }
+
+            // Pre-compute clusters so they're ready when user switches view
+            this.state.athleteClusters = Clustering.cluster(
+                montages, this.state.clusterThreshold, this.state.savedClusters
+            );
+        }
+    },
+
+    /**
+     * Switch between grid and athlete montage views.
+     */
+    switchMontageView(mode) {
+        this.state.montageView = mode;
+
+        // Update toggle button states
+        document.querySelectorAll('.montage-view-toggle .view-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === mode);
+        });
+
+        const grid = document.getElementById('montagesGrid');
+        const athleteView = document.getElementById('athleteView');
+
+        if (mode === 'grid') {
+            if (grid) grid.style.display = '';
+            if (athleteView) athleteView.style.display = 'none';
+        } else {
+            if (grid) grid.style.display = 'none';
+            if (athleteView) athleteView.style.display = '';
+
+            // Compute clusters if not already done
+            if (!this.state.athleteClusters) {
+                const montages = this.state.currentEvent?.content?.montages || [];
+                this.state.athleteClusters = Clustering.cluster(
+                    montages, this.state.clusterThreshold, this.state.savedClusters
+                );
+            }
+
+            this.renderAthleteView();
+        }
+    },
+
+    /**
+     * Render the athlete-grouped view with collapsible cards.
+     */
+    renderAthleteView() {
+        const container = document.getElementById('athleteView');
+        if (!container) return;
+
+        const clusters = this.state.athleteClusters;
+        if (!clusters || Object.keys(clusters).length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>No athlete groups found</h3>
+                    <p>Embeddings may not be available for these montages.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const montages = this.state.currentEvent?.content?.montages || [];
+        const variant = Filters.state.montageVariant;
+        const eventId = this.state.currentEvent?.event_id;
+
+        // Build entries sorted by number of runs (most runs first)
+        const entries = Object.entries(clusters)
+            .map(([id, cluster]) => {
+                const clusterMontages = cluster.run_numbers
+                    .map(rn => montages.find(m =>
+                        m.run_number === rn && (!variant || m.variant === variant)
+                    ))
+                    .filter(Boolean)
+                    .sort((a, b) => a.run_number - b.run_number);
+                return { id, cluster, montages: clusterMontages };
+            })
+            .filter(e => e.montages.length > 0)
+            .sort((a, b) => b.montages.length - a.montages.length);
+
+        // Sensitivity slider + athlete cards
+        container.innerHTML = `
+            <div class="athlete-sensitivity">
+                <label>Grouping sensitivity:</label>
+                <input type="range" id="clusterThreshold" min="0.5" max="0.95" step="0.01"
+                       value="${this.state.clusterThreshold}"
+                       oninput="App.updateClusterThreshold(this.value)">
+                <span id="clusterCount">${entries.length} athlete${entries.length !== 1 ? 's' : ''}</span>
+            </div>
+            ${entries.map(({ id, cluster, montages: clusterMontages }) => {
+                const rep = clusterMontages[0];
+                const bestTime = clusterMontages
+                    .filter(m => m.elapsed_time != null)
+                    .reduce((min, m) => Math.min(min, m.elapsed_time), Infinity);
+
+                return `
+                    <div class="athlete-card" data-cluster="${id}" style="border-left-color: ${cluster.color};">
+                        <div class="athlete-card-header" onclick="App.toggleAthleteCard('${id}')">
+                            <div class="athlete-avatar">
+                                <img src="${API.getMediaUrl(rep.thumb_url, eventId)}" alt="">
+                            </div>
+                            <div class="athlete-info">
+                                <h4 class="athlete-label"
+                                    contenteditable="true"
+                                    onclick="event.stopPropagation()"
+                                    onblur="App.renameAthlete('${id}', this.textContent)"
+                                    onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault()}"
+                                >${this.escapeHtml(cluster.label)}</h4>
+                                <span class="athlete-run-count">${clusterMontages.length} run${clusterMontages.length !== 1 ? 's' : ''}</span>
+                                ${bestTime < Infinity
+                                    ? `<span class="athlete-best-time">Best: ${bestTime.toFixed(2)}s</span>`
+                                    : ''}
+                            </div>
+                            <span class="athlete-expand-icon" id="expand-${id}">&#9654;</span>
+                        </div>
+                        <div class="athlete-runs" id="runs-${id}" style="display: none;">
+                            ${clusterMontages.map(m => this.renderAthleteRunCard(m, eventId, id)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        `;
+
+        // Setup drag-drop for run reassignment
+        this.setupRunDragDrop(container);
+    },
+
+    /**
+     * Render a single montage card inside an athlete group (draggable).
+     */
+    renderAthleteRunCard(montage, eventId, clusterId) {
+        const timeOverlay = montage.elapsed_time != null
+            ? `<span class="montage-time-overlay">${montage.elapsed_time.toFixed(2)}s</span>`
+            : '';
+
+        return `
+            <div class="montage-card" data-montage-id="${montage.id}" data-run-number="${montage.run_number}"
+                 draggable="true">
+                <div class="montage-thumbnail">
+                    ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Run ${montage.run_number}">` : ''}
+                    ${timeOverlay}
+                </div>
+                <div class="montage-card-content">
+                    <p>Run ${montage.run_number || '?'} • ${this.formatTime(montage.timestamp)}</p>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Toggle expand/collapse of an athlete card's runs.
+     */
+    toggleAthleteCard(clusterId) {
+        const runs = document.getElementById(`runs-${clusterId}`);
+        const icon = document.getElementById(`expand-${clusterId}`);
+        if (!runs) return;
+
+        const isHidden = runs.style.display === 'none';
+        runs.style.display = isHidden ? '' : 'none';
+        if (icon) icon.innerHTML = isHidden ? '&#9660;' : '&#9654;';
+
+        // Add click handlers to montage cards for fullscreen viewer
+        if (isHidden) {
+            const montages = this.state.currentEvent?.content?.montages || [];
+            const variant = Filters.state.montageVariant;
+            const eventId = this.state.currentEvent?.event_id;
+            const cluster = this.state.athleteClusters[clusterId];
+            if (!cluster) return;
+
+            // Get this athlete's montages in order
+            const athleteMontages = cluster.run_numbers
+                .map(rn => montages.find(m =>
+                    m.run_number === rn && (!variant || m.variant === variant)
+                ))
+                .filter(Boolean)
+                .sort((a, b) => a.run_number - b.run_number);
+
+            runs.querySelectorAll('.montage-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // Don't open viewer if user is dragging
+                    if (card.classList.contains('dragging')) return;
+                    const montage = athleteMontages.find(m => m.id === card.dataset.montageId);
+                    if (montage) {
+                        const idx = athleteMontages.indexOf(montage);
+                        const fastest = this.getFastestMontage(montages, variant);
+                        ImageViewer.open(idx, athleteMontages, fastest, eventId);
+                    }
+                });
+            });
+        }
+    },
+
+    /**
+     * Rename an athlete label (via contenteditable blur).
+     */
+    renameAthlete(clusterId, newLabel) {
+        const label = (newLabel || '').trim();
+        if (!label || !this.state.athleteClusters[clusterId]) return;
+
+        this.state.athleteClusters[clusterId].label = label;
+
+        // Save to S3
+        const eventId = this.state.currentEvent?.event_id;
+        if (eventId && typeof Clustering !== 'undefined') {
+            Clustering.save(eventId, this.state.athleteClusters, this.state.manualOverrides);
+        }
+    },
+
+    /**
+     * Update clustering threshold and re-cluster.
+     */
+    updateClusterThreshold(value) {
+        this.state.clusterThreshold = parseFloat(value);
+        const montages = this.state.currentEvent?.content?.montages || [];
+
+        // Re-cluster with new threshold (embeddings stay the same)
+        this.state.athleteClusters = Clustering.cluster(
+            montages, this.state.clusterThreshold, this.state.savedClusters
+        );
+
+        this.renderAthleteView();
+    },
+
+    /**
+     * Reassign a run from one athlete cluster to another.
+     */
+    reassignRun(runNumber, fromClusterId, toClusterId) {
+        const clusters = this.state.athleteClusters;
+        if (!clusters[fromClusterId] || !clusters[toClusterId]) return;
+
+        // Remove from source
+        clusters[fromClusterId].run_numbers =
+            clusters[fromClusterId].run_numbers.filter(rn => rn !== runNumber);
+
+        // Add to target
+        clusters[toClusterId].run_numbers.push(runNumber);
+        clusters[toClusterId].run_numbers.sort((a, b) => a - b);
+
+        // Track manual override
+        this.state.manualOverrides[runNumber] = toClusterId;
+
+        // Remove empty clusters
+        if (clusters[fromClusterId].run_numbers.length === 0) {
+            delete clusters[fromClusterId];
+        }
+
+        // Re-render and save
+        this.renderAthleteView();
+        const eventId = this.state.currentEvent?.event_id;
+        if (eventId && typeof Clustering !== 'undefined') {
+            Clustering.save(eventId, clusters, this.state.manualOverrides);
+        }
+    },
+
+    /**
+     * Setup drag-and-drop for reassigning runs between athletes.
+     */
+    setupRunDragDrop(container) {
+        let draggedRunNumber = null;
+        let draggedFromCluster = null;
+
+        // Draggable montage cards
+        container.querySelectorAll('.montage-card[draggable]').forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                draggedRunNumber = parseInt(card.dataset.runNumber);
+                draggedFromCluster = card.closest('.athlete-card')?.dataset.cluster;
+                e.dataTransfer.effectAllowed = 'move';
+                card.classList.add('dragging');
+                // Small delay to not interfere with click
+                setTimeout(() => card.style.opacity = '0.5', 0);
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                card.style.opacity = '';
+                container.querySelectorAll('.drag-target').forEach(el =>
+                    el.classList.remove('drag-target')
+                );
+            });
+        });
+
+        // Drop targets: athlete card headers
+        container.querySelectorAll('.athlete-card-header').forEach(header => {
+            header.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                header.closest('.athlete-card')?.classList.add('drag-target');
+            });
+
+            header.addEventListener('dragleave', (e) => {
+                // Only remove if actually leaving the card
+                const card = header.closest('.athlete-card');
+                if (card && !card.contains(e.relatedTarget)) {
+                    card.classList.remove('drag-target');
+                }
+            });
+
+            header.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const targetCluster = header.closest('.athlete-card')?.dataset.cluster;
+
+                if (targetCluster && targetCluster !== draggedFromCluster && draggedRunNumber != null) {
+                    this.reassignRun(draggedRunNumber, draggedFromCluster, targetCluster);
+                }
+
+                header.closest('.athlete-card')?.classList.remove('drag-target');
+            });
+        });
+    },
+
+    escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     },
 
     /**

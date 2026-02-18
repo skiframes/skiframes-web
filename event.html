@@ -104,6 +104,10 @@
         <!-- Montages Section -->
         <section id="montagesSection" class="content-section">
             <div class="view-toggle">
+                <div id="montageViewToggle" class="montage-view-toggle" style="display: none;">
+                    <button class="view-btn active" data-view="grid" onclick="App.switchMontageView('grid')">Grid</button>
+                    <button class="view-btn" data-view="athlete" onclick="App.switchMontageView('athlete')">By Athlete</button>
+                </div>
                 <span class="speed-label">Frames per second:</span>
                 <div id="montageSpeedButtons" class="speed-buttons">
                     <!-- Populated by JS -->
@@ -114,6 +118,10 @@
 
             <div id="montagesGrid" class="montages-grid">
                 <!-- Populated by JS -->
+            </div>
+
+            <div id="athleteView" class="athlete-view" style="display: none;">
+                <!-- Populated by JS: athlete cards with grouped runs -->
             </div>
         </section>
 
@@ -216,6 +224,7 @@
     <script src="js/filters.js"></script>
     <script src="js/player.js"></script>
     <script src="js/download.js"></script>
+    <script src="js/clustering.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

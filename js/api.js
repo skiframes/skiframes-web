@@ -71,7 +71,8 @@ const API = {
                         elapsed_time: run.elapsed_time || null,
                         thumb_url: variant.thumbnail,
                         full_url: variant.fullres,
-                        frame_count: variant.frame_count
+                        frame_count: variant.frame_count,
+                        embedding: run.embedding || null
                     });
                     variantIdx++;
                 }
