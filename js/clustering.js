@@ -43,13 +43,20 @@ const Clustering = {
      * 4. Repeat until no more merges possible
      *
      * @param {Object[]} montages - Array of montage objects with .embedding and .run_number
-     * @param {number} threshold - Minimum cosine similarity to merge (default 0.82)
+     * @param {number} threshold - Minimum cosine similarity to merge (default 0.92)
      * @param {Object} [savedClusters] - Previously saved cluster data with manual overrides
      * @returns {Object} Cluster assignments: { athlete_1: { label, run_numbers, color }, ... }
      */
-    cluster(montages, threshold = 0.82, savedClusters = null) {
-        // Filter montages that have embeddings
-        const withEmbeddings = montages.filter(m => m.embedding && m.embedding.length > 0);
+    cluster(montages, threshold = 0.92, savedClusters = null) {
+        // Filter montages that have embeddings, deduplicate by run_number
+        // (all FPS variants of the same run share the same embedding)
+        const seenRuns = new Set();
+        const withEmbeddings = montages.filter(m => {
+            if (!m.embedding || m.embedding.length === 0) return false;
+            if (seenRuns.has(m.run_number)) return false;
+            seenRuns.add(m.run_number);
+            return true;
+        });
         if (withEmbeddings.length === 0) return {};
 
         // Initialize: each run is its own cluster

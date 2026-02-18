@@ -263,6 +263,8 @@ const ImageViewer = {
     fastestMontage: null,
     eventId: null,
     compareMode: false,
+    availableVariants: [],   // FPS variants for switching (e.g., ['3.0fps', '4.0fps'])
+    currentVariant: null,    // Currently displayed variant
 
     init(imageElement, modalElement) {
         this.currentImg = imageElement;
@@ -272,7 +274,7 @@ const ImageViewer = {
         this.setupKeyboard();
     },
 
-    open(index, montages, fastestMontage, eventId) {
+    open(index, montages, fastestMontage, eventId, variants) {
         if (!this.modal) return;
 
         this.montages = montages;
@@ -280,6 +282,14 @@ const ImageViewer = {
         this.fastestMontage = fastestMontage;
         this.eventId = eventId;
         this.compareMode = false;
+        // Always compute available FPS variants from the event montages
+        if (variants && variants.length > 0) {
+            this.availableVariants = variants;
+        } else {
+            const allMontages = App.state.currentEvent?.content?.montages || [];
+            this.availableVariants = Filters.getVariantsSlowestFirst(allMontages);
+        }
+        this.currentVariant = montages[index]?.variant || null;
 
         // Reset compare UI
         const compareBtn = document.getElementById('compareToggle');
@@ -355,12 +365,105 @@ const ImageViewer = {
             compareBtn.style.display = this.fastestMontage ? 'inline-flex' : 'none';
         }
 
+        // FPS variant buttons (shown when opened from athlete view with multiple variants)
+        this.renderFpsButtons(montage);
+
         if (this.compareMode) this.loadFastestPanel();
+    },
+
+    /**
+     * Render FPS variant buttons in the viewer toolbar.
+     * Allows switching between different FPS montages for the same run.
+     */
+    renderFpsButtons(currentMontage) {
+        const container = document.getElementById('viewerFpsButtons');
+        if (!container) return;
+
+        if (!this.availableVariants || this.availableVariants.length <= 1) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'flex';
+        const activeVariant = currentMontage.variant || this.currentVariant;
+
+        container.innerHTML = this.availableVariants.map(v => {
+            const match = v.match(/(\d+\.?\d*)/);
+            const label = match ? (parseFloat(match[1]) % 1 === 0
+                ? parseFloat(match[1]).toFixed(0)
+                : parseFloat(match[1]).toFixed(1)) + ' fps' : v;
+            const isActive = v === activeVariant;
+            return `<button class="viewer-fps-btn ${isActive ? 'active' : ''}"
+                            onclick="ImageViewer.switchVariant('${v}')">${label}</button>`;
+        }).join('');
+    },
+
+    /**
+     * Switch the current montage to a different FPS variant (same run).
+     */
+    switchVariant(variant) {
+        const currentMontage = this.montages[this.currentIndex];
+        if (!currentMontage || !this.eventId) return;
+
+        // Find the same run_number in the requested variant
+        const allMontages = App.state.currentEvent?.content?.montages || [];
+        const altMontage = allMontages.find(m =>
+            m.run_number === currentMontage.run_number && m.variant === variant
+        );
+        if (!altMontage) return;
+
+        this.currentVariant = variant;
+
+        // Load the alternative variant image for current panel
+        const fullUrl = API.getMediaUrl(altMontage.full_url, this.eventId);
+        const thumbUrl = API.getMediaUrl(altMontage.thumb_url, this.eventId);
+        const downloadEl = document.getElementById('downloadImage');
+        if (downloadEl) downloadEl.href = fullUrl;
+
+        if (this.currentImg) {
+            this.currentImg.src = thumbUrl;
+            const full = new Image();
+            const idx = this.currentIndex;
+            full.onload = () => {
+                if (this.currentIndex === idx) this.currentImg.src = fullUrl;
+            };
+            full.src = fullUrl;
+        }
+
+        // Also update the fastest panel if comparison mode is active
+        if (this.compareMode && this.fastestMontage) {
+            const fastestAlt = allMontages.find(m =>
+                m.run_number === this.fastestMontage.run_number && m.variant === variant
+            );
+            if (fastestAlt && this.fastestImg) {
+                const fThumbUrl = API.getMediaUrl(fastestAlt.thumb_url, this.eventId);
+                const fFullUrl = API.getMediaUrl(fastestAlt.full_url, this.eventId);
+                this.fastestImg.src = fThumbUrl;
+                const fFull = new Image();
+                fFull.onload = () => {
+                    if (this.compareMode) this.fastestImg.src = fFullUrl;
+                };
+                fFull.src = fFullUrl;
+            }
+        }
+
+        // Update FPS button active state
+        this.renderFpsButtons(altMontage);
     },
 
     loadFastestPanel() {
         if (!this.fastestMontage || !this.fastestImg) return;
-        const f = this.fastestMontage;
+
+        // Use the fastest montage in the currently selected FPS variant
+        let f = this.fastestMontage;
+        if (this.currentVariant && this.currentVariant !== f.variant) {
+            const allMontages = App.state.currentEvent?.content?.montages || [];
+            const altFastest = allMontages.find(m =>
+                m.run_number === f.run_number && m.variant === this.currentVariant
+            );
+            if (altFastest) f = altFastest;
+        }
+
         const thumbUrl = API.getMediaUrl(f.thumb_url, this.eventId);
         const fullUrl = API.getMediaUrl(f.full_url, this.eventId);
 

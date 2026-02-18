@@ -13,7 +13,7 @@ const App = {
         athleteClusters: null,     // Clustering result
         savedClusters: null,       // Loaded from S3 (manual overrides)
         manualOverrides: {},       // Run reassignments by user
-        clusterThreshold: 0.82    // Clustering sensitivity
+        clusterThreshold: 0.92    // Clustering sensitivity
     },
 
     /**
@@ -1188,6 +1188,9 @@ const App = {
      * Shows the Grid/By Athlete toggle and loads saved clusters from S3.
      */
     async initAthleteView(manifest) {
+        // Only for training sessions — races already have named athletes
+        if (manifest.event_type === 'race') return;
+
         const montages = manifest.content?.montages || [];
         const hasEmbeddings = montages.some(m => m.embedding && m.embedding.length > 0);
 
@@ -1266,12 +1269,17 @@ const App = {
         const variant = Filters.state.montageVariant;
         const eventId = this.state.currentEvent?.event_id;
 
+        // For athlete view: show one card per run, using the slowest FPS variant.
+        // Other FPS variants are available via the fullscreen viewer.
+        const variants = Filters.getVariantsSlowestFirst(montages);
+        const slowestVariant = variants.length > 0 ? variants[0] : variant;
+
         // Build entries sorted by number of runs (most runs first)
         const entries = Object.entries(clusters)
             .map(([id, cluster]) => {
                 const clusterMontages = cluster.run_numbers
                     .map(rn => montages.find(m =>
-                        m.run_number === rn && (!variant || m.variant === variant)
+                        m.run_number === rn && m.variant === slowestVariant
                     ))
                     .filter(Boolean)
                     .sort((a, b) => a.run_number - b.run_number);
@@ -1284,7 +1292,7 @@ const App = {
         container.innerHTML = `
             <div class="athlete-sensitivity">
                 <label>Grouping sensitivity:</label>
-                <input type="range" id="clusterThreshold" min="0.5" max="0.95" step="0.01"
+                <input type="range" id="clusterThreshold" min="0.80" max="0.98" step="0.01"
                        value="${this.state.clusterThreshold}"
                        oninput="App.updateClusterThreshold(this.value)">
                 <span id="clusterCount">${entries.length} athlete${entries.length !== 1 ? 's' : ''}</span>
@@ -1364,15 +1372,18 @@ const App = {
         // Add click handlers to montage cards for fullscreen viewer
         if (isHidden) {
             const montages = this.state.currentEvent?.content?.montages || [];
-            const variant = Filters.state.montageVariant;
             const eventId = this.state.currentEvent?.event_id;
             const cluster = this.state.athleteClusters[clusterId];
             if (!cluster) return;
 
-            // Get this athlete's montages in order
+            // Use slowest variant for the card list
+            const variants = Filters.getVariantsSlowestFirst(montages);
+            const slowestVariant = variants.length > 0 ? variants[0] : null;
+
+            // Get this athlete's montages (slowest variant) in order
             const athleteMontages = cluster.run_numbers
                 .map(rn => montages.find(m =>
-                    m.run_number === rn && (!variant || m.variant === variant)
+                    m.run_number === rn && m.variant === slowestVariant
                 ))
                 .filter(Boolean)
                 .sort((a, b) => a.run_number - b.run_number);
@@ -1384,8 +1395,9 @@ const App = {
                     const montage = athleteMontages.find(m => m.id === card.dataset.montageId);
                     if (montage) {
                         const idx = athleteMontages.indexOf(montage);
-                        const fastest = this.getFastestMontage(montages, variant);
-                        ImageViewer.open(idx, athleteMontages, fastest, eventId);
+                        const fastest = this.getFastestMontage(montages, slowestVariant);
+                        // Pass all variants so viewer can switch FPS
+                        ImageViewer.open(idx, athleteMontages, fastest, eventId, variants);
                     }
                 });
             });
