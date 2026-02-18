@@ -88,6 +88,8 @@ const API = {
                 location: 'Ragged Mountain, NH',
                 teams: [],
                 categories: manifest.group ? [manifest.group] : [],
+                camera_id: manifest.camera_id || '',
+                device_id: manifest.device_id || '',
                 montage_fps_list: manifest.montage_fps_list || [],
                 content: {
                     videos: [],

@@ -17,8 +17,10 @@ export default {
         const isAllowedOrigin = origin.includes('avillachlab-net-dev') || origin.includes('skiframes.com');
 
         // Skip auth for requests from allowed origins (dev and prod sites)
+        // Also skip auth for device endpoints (edge devices aren't browsers)
         // TODO: Re-enable Cloudflare Access auth once admin.skiframes.com is set up
-        const skipAuth = isAllowedOrigin;
+        const isDeviceEndpoint = url.pathname.startsWith('/device/') || url.pathname === '/devices';
+        const skipAuth = isAllowedOrigin || isDeviceEndpoint;
 
         // Verify Cloudflare Access JWT
         if (!skipAuth) {
@@ -50,6 +52,14 @@ export default {
 
             if (url.pathname === '/save-bib-state' && request.method === 'POST') {
                 return await handleSaveBibState(request, env);
+            }
+
+            if (url.pathname === '/device/heartbeat' && request.method === 'POST') {
+                return await handleDeviceHeartbeat(request, env);
+            }
+
+            if (url.pathname === '/devices' && request.method === 'GET') {
+                return await handleGetDevices(request, env);
             }
 
             return new Response('Not Found', {
@@ -281,6 +291,91 @@ async function handleSaveBibState(request, env) {
     }
 
     return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(env, request)
+        }
+    });
+}
+
+/**
+ * Handle device heartbeat - edge devices POST their state every 30s
+ * Stores device info in config/devices.json on S3
+ */
+async function handleDeviceHeartbeat(request, env) {
+    const data = await request.json();
+
+    if (!data.device_id) {
+        return new Response('Missing device_id', {
+            status: 400,
+            headers: corsHeaders(env, request)
+        });
+    }
+
+    // Get current devices registry
+    let devices = {};
+    try {
+        const existing = await getFromS3(env, 'config/devices.json');
+        if (existing && typeof existing === 'object') {
+            devices = existing;
+        }
+    } catch (e) {
+        // File doesn't exist yet, start fresh
+    }
+
+    // Update this device's entry
+    devices[data.device_id] = {
+        device_id: data.device_id,
+        cameras: data.cameras || [],
+        active_sessions: data.active_sessions || [],
+        hostname: data.hostname || '',
+        last_heartbeat: new Date().toISOString()
+    };
+
+    // Save back to S3
+    await putToS3(env, 'config/devices.json', JSON.stringify(devices, null, 2), {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(env, request)
+        }
+    });
+}
+
+/**
+ * Handle GET /devices - returns all registered devices with online/offline status
+ * A device is considered offline if its last heartbeat was more than 90s ago
+ */
+async function handleGetDevices(request, env) {
+    let devices = {};
+    try {
+        const existing = await getFromS3(env, 'config/devices.json');
+        if (existing && typeof existing === 'object') {
+            devices = existing;
+        }
+    } catch (e) {
+        // No devices registered yet
+    }
+
+    const now = Date.now();
+    const OFFLINE_THRESHOLD_MS = 90 * 1000; // 90 seconds
+
+    // Add online/offline status to each device
+    const deviceList = Object.values(devices).map(device => {
+        const lastHeartbeat = device.last_heartbeat ? new Date(device.last_heartbeat).getTime() : 0;
+        const isOnline = (now - lastHeartbeat) < OFFLINE_THRESHOLD_MS;
+        return {
+            ...device,
+            online: isOnline
+        };
+    });
+
+    return new Response(JSON.stringify({ devices: deviceList }), {
         status: 200,
         headers: {
             'Content-Type': 'application/json',

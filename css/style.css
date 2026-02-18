@@ -388,6 +388,14 @@ body {
     right: 12px;
 }
 
+.event-badge.camera {
+    background: #2563eb;
+    color: white;
+    left: auto;
+    right: 12px;
+    top: 40px;
+}
+
 .event-card-content {
     padding: 20px;
 }

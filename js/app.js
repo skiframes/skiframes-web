@@ -178,6 +178,7 @@ const App = {
                     ${logoUrl ? `<img src="${logoUrl}" alt="${event.event_name}" class="event-card-logo">` : ''}
                     <span class="event-badge ${event.event_type}">${event.event_type}</span>
                     ${event.discipline && event.discipline !== 'freeski' ? `<span class="event-badge discipline">${{sl_youth:'SL',sl_adult:'SL',gs_panel:'GS',sg_panel:'SG'}[event.discipline] || event.discipline}</span>` : ''}
+                    ${(() => { const cd = this.parseCameraDevice(event.event_id); return cd ? `<span class="event-badge camera">${cd}</span>` : ''; })()}
                 </div>
                 <div class="event-card-content">
                     <h3>${event.event_name}</h3>
@@ -439,7 +440,15 @@ const App = {
         }
 
         if (metaEl) {
-            metaEl.textContent = `${this.formatDate(manifest.event_date)} • ${manifest.location || ''}`;
+            let metaText = `${this.formatDate(manifest.event_date)} • ${manifest.location || ''}`;
+            // Add camera/device info if available
+            const camDevice = manifest.camera_id || manifest.device_id
+                ? [manifest.camera_id, manifest.device_id].filter(Boolean).map(s => s.toUpperCase()).join(' @ ')
+                : this.parseCameraDevice(manifest.event_id);
+            if (camDevice) {
+                metaText += ` • ${camDevice}`;
+            }
+            metaEl.textContent = metaText;
         }
     },
 
@@ -1142,6 +1151,32 @@ const App = {
             option.textContent = team;
             select.appendChild(option);
         });
+    },
+
+    /**
+     * Extract camera and device labels from event_id
+     * e.g., "2026-02-05_u14_race_R1_j40" -> "R1 @ J40"
+     * Returns empty string if no camera/device info is found
+     */
+    parseCameraDevice(eventId) {
+        if (!eventId) return '';
+        // Match event_ids ending with _camera_device pattern
+        // Event IDs: YYYY-MM-DD_group_type_camera_device
+        const parts = eventId.split('_');
+        if (parts.length < 5) return ''; // Not enough parts for camera+device
+
+        // The date is always first (YYYY-MM-DD), then group, type, camera, device
+        // Check if last two parts look like camera_id + device_id
+        const lastPart = parts[parts.length - 1];
+        const secondLast = parts[parts.length - 2];
+
+        // Known device IDs
+        const knownDevices = ['j40', 'gmk', 'ms01'];
+        if (knownDevices.includes(lastPart.toLowerCase())) {
+            // secondLast is likely camera_id
+            return `${secondLast.toUpperCase()} @ ${lastPart.toUpperCase()}`;
+        }
+        return '';
     },
 
     formatDate(dateStr) {
