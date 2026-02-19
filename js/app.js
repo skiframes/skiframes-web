@@ -13,7 +13,7 @@ const App = {
         athleteClusters: null,     // Clustering result
         savedClusters: null,       // Loaded from S3 (manual overrides)
         manualOverrides: {},       // Run reassignments by user
-        clusterThreshold: 0.92    // Clustering sensitivity
+        clusterThreshold: 0.88    // Clustering sensitivity
     },
 
     /**
@@ -1292,7 +1292,7 @@ const App = {
         container.innerHTML = `
             <div class="athlete-sensitivity">
                 <label>Grouping sensitivity:</label>
-                <input type="range" id="clusterThreshold" min="0.80" max="0.98" step="0.01"
+                <input type="range" id="clusterThreshold" min="0.70" max="0.98" step="0.01"
                        value="${this.state.clusterThreshold}"
                        oninput="App.updateClusterThreshold(this.value)">
                 <span id="clusterCount">${entries.length} athlete${entries.length !== 1 ? 's' : ''}</span>

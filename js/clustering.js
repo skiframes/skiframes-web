@@ -47,7 +47,7 @@ const Clustering = {
      * @param {Object} [savedClusters] - Previously saved cluster data with manual overrides
      * @returns {Object} Cluster assignments: { athlete_1: { label, run_numbers, color }, ... }
      */
-    cluster(montages, threshold = 0.92, savedClusters = null) {
+    cluster(montages, threshold = 0.88, savedClusters = null) {
         // Filter montages that have embeddings, deduplicate by run_number
         // (all FPS variants of the same run share the same embedding)
         const seenRuns = new Set();
