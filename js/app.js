@@ -1090,12 +1090,14 @@ const App = {
             }
 
             // Single card (fastest itself, or showFastest is off)
+            const playBtn = montage.video_url ? '<button class="montage-play-btn" title="Play video">&#9654;</button>' : '';
             return `
                 <div class="montage-card" data-montage-id="${montage.id}">
                     <div class="montage-thumbnail">
                         ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
                         ${timeOverlay}
                         ${fastestBadge}
+                        ${playBtn}
                     </div>
                     <div class="montage-card-content">
                         <p>${montage.elapsed_time != null ? `Run ${montage.run_number || '?'} • ` : ''}${this.formatTime(montage.timestamp)}</p>
@@ -1106,6 +1108,21 @@ const App = {
 
         // Add click handlers
         container.querySelectorAll('.montage-card').forEach(card => {
+            // Play button opens video player
+            const playBtn = card.querySelector('.montage-play-btn');
+            if (playBtn) {
+                playBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const montage = montages.find(m => m.id === card.dataset.montageId);
+                    if (montage && montage.video_url) {
+                        const videoUrl = API.getMediaUrl(montage.video_url, eventId);
+                        const title = `Run ${montage.run_number || '?'}`;
+                        const meta = montage.elapsed_time != null ? `${montage.elapsed_time.toFixed(2)}s` : '';
+                        Player.open(videoUrl, title, meta, videoUrl);
+                    }
+                });
+            }
+            // Card click opens image viewer
             card.addEventListener('click', () => {
                 const montage = montages.find(m => m.id === card.dataset.montageId);
                 if (montage) {
@@ -1342,6 +1359,7 @@ const App = {
         const timeOverlay = montage.elapsed_time != null
             ? `<span class="montage-time-overlay">${montage.elapsed_time.toFixed(2)}s</span>`
             : '';
+        const playBtn = montage.video_url ? '<button class="montage-play-btn" title="Play video">&#9654;</button>' : '';
 
         return `
             <div class="montage-card" data-montage-id="${montage.id}" data-run-number="${montage.run_number}"
@@ -1349,6 +1367,7 @@ const App = {
                 <div class="montage-thumbnail">
                     ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Run ${montage.run_number}">` : ''}
                     ${timeOverlay}
+                    ${playBtn}
                 </div>
                 <div class="montage-card-content">
                     <p>Run ${montage.run_number || '?'} • ${this.formatTime(montage.timestamp)}</p>
@@ -1389,6 +1408,20 @@ const App = {
                 .sort((a, b) => a.run_number - b.run_number);
 
             runs.querySelectorAll('.montage-card').forEach(card => {
+                // Play button opens video player
+                const playBtn = card.querySelector('.montage-play-btn');
+                if (playBtn) {
+                    playBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const montage = athleteMontages.find(m => m.id === card.dataset.montageId);
+                        if (montage && montage.video_url) {
+                            const videoUrl = API.getMediaUrl(montage.video_url, eventId);
+                            const title = `Run ${montage.run_number || '?'}`;
+                            const meta = montage.elapsed_time != null ? `${montage.elapsed_time.toFixed(2)}s` : '';
+                            Player.open(videoUrl, title, meta, videoUrl);
+                        }
+                    });
+                }
                 card.addEventListener('click', (e) => {
                     // Don't open viewer if user is dragging
                     if (card.classList.contains('dragging')) return;

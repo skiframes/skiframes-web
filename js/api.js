@@ -53,8 +53,13 @@ const API = {
 
         // Check for edge montage format (has runs[] array from RTSP detection)
         if (manifest.runs && Array.isArray(manifest.runs)) {
+            // Filter out false positive detections (runs shorter than 3 seconds)
+            const MIN_RUN_DURATION = 3.0;
+            const validRuns = manifest.runs.filter(run =>
+                run.elapsed_time == null || run.elapsed_time >= MIN_RUN_DURATION
+            );
             const montages = [];
-            manifest.runs.forEach((run, idx) => {
+            validRuns.forEach((run, idx) => {
                 // Each run has variants keyed by FPS (e.g., "4.0fps") or legacy keys ("base", "_2later")
                 let variantIdx = 0;
                 for (const [variantName, variant] of Object.entries(run.variants || {})) {
@@ -72,7 +77,8 @@ const API = {
                         thumb_url: variant.thumbnail,
                         full_url: variant.fullres,
                         frame_count: variant.frame_count,
-                        embedding: run.embedding || null
+                        embedding: run.embedding || null,
+                        video_url: run.video_url || null
                     });
                     variantIdx++;
                 }
