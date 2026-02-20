@@ -53,8 +53,8 @@ const API = {
 
         // Check for edge montage format (has runs[] array from RTSP detection)
         if (manifest.runs && Array.isArray(manifest.runs)) {
-            // Filter out false positive detections (runs shorter than 3 seconds)
-            const MIN_RUN_DURATION = 3.0;
+            // Filter out false positive detections (runs shorter than 1 second)
+            const MIN_RUN_DURATION = 1.0;
             const validRuns = manifest.runs.filter(run =>
                 run.elapsed_time == null || run.elapsed_time >= MIN_RUN_DURATION
             );

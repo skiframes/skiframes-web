@@ -617,6 +617,7 @@
                         <div class="run-toggle">
                             <button class="active" data-run="1" id="run1Btn">R1</button>
                             <button data-run="2" id="run2Btn">R2</button>
+                            <button data-run="3" id="run3Btn">R3</button>
                         </div>
                     </div>
                     <div class="search-row">
@@ -734,6 +735,11 @@
                     this.buildOrder();
                     this.render();
                     document.getElementById('startlistPanel').classList.remove('hidden');
+                    // Show/hide R3 button based on data
+                    const run3Btn = document.getElementById('run3Btn');
+                    if (run3Btn) {
+                        run3Btn.style.display = this.data.run3_start ? '' : 'none';
+                    }
                 } catch (e) {
                     console.error('Failed to load start list:', e);
                 }
@@ -744,33 +750,44 @@
                 this.flatOrder = [];
                 this.bibToIndex = {};
 
-                // Class order: U12 Women, U12 Men, U14 Women, U14 Men
-                const classOrder = ['U12 Women', 'U12 Men', 'U14 Women', 'U14 Men'];
-
-                const run1Start = new Date(this.data.run1_start);
-                const run2Start = new Date(this.data.run2_start);
                 const interval = this.data.interval_seconds * 1000;
+                const runKey = `run${this.currentRun}_start`;
+                const runStart = new Date(this.data[runKey] || this.data.run1_start);
+                const orderKey = `run${this.currentRun}_order`;
 
-                const runStart = this.currentRun === 1 ? run1Start : run2Start;
                 let offset = 0;
 
-                for (const className of classOrder) {
-                    const cls = this.data.classes.find(c => c.name === className);
-                    if (!cls) continue;
+                // Build a bib lookup across all classes
+                const bibLookup = {};
+                for (const cls of this.data.classes) {
+                    for (const a of cls.athletes) {
+                        bibLookup[a.bib] = { ...a, className: cls.name };
+                    }
+                }
 
-                    let athletes = [...cls.athletes];
-                    if (this.currentRun === 2) {
-                        athletes = athletes.slice().reverse();
+                // Use class order from data (in order they appear)
+                for (const cls of this.data.classes) {
+                    let orderedBibs;
+                    if (cls[orderKey]) {
+                        // Use explicit per-run order
+                        orderedBibs = cls[orderKey];
+                    } else if (this.currentRun === 2) {
+                        // Fallback: reverse for run 2
+                        orderedBibs = cls.athletes.slice().reverse().map(a => a.bib);
+                    } else {
+                        orderedBibs = cls.athletes.map(a => a.bib);
                     }
 
-                    for (const a of athletes) {
+                    for (const bib of orderedBibs) {
+                        const a = bibLookup[bib];
+                        if (!a) continue;
                         const estTime = new Date(runStart.getTime() + offset);
                         this.flatOrder.push({
                             bib: a.bib,
                             first: a.first,
                             last: a.last,
                             club: a.club,
-                            className: className,
+                            className: a.className,
                             estTime: estTime
                         });
                         this.bibToIndex[a.bib] = this.flatOrder.length - 1;
@@ -911,6 +928,8 @@
                 this.currentRun = run;
                 document.getElementById('run1Btn').classList.toggle('active', run === 1);
                 document.getElementById('run2Btn').classList.toggle('active', run === 2);
+                const run3Btn = document.getElementById('run3Btn');
+                if (run3Btn) run3Btn.classList.toggle('active', run === 3);
                 this.currentBib = null;
                 document.getElementById('currentBibInput').value = '';
                 this.buildOrder();
@@ -1015,6 +1034,7 @@
         });
         document.getElementById('run1Btn').addEventListener('click', () => { StartList.setRun(1); StartList.broadcastBib(); });
         document.getElementById('run2Btn').addEventListener('click', () => { StartList.setRun(2); StartList.broadcastBib(); });
+        document.getElementById('run3Btn').addEventListener('click', () => { StartList.setRun(3); StartList.broadcastBib(); });
 
         // DVR skip buttons: seek video by time offset
         function dvrSkip(seconds) {
