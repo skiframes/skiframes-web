@@ -302,6 +302,106 @@
             </div>
         </section>
 
+        <!-- Stream Configuration -->
+        <section class="section">
+            <div class="section-header">
+                <h2>Stream Configuration</h2>
+            </div>
+            <div class="event-item">
+                <div style="display: grid; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Stream Mode</label>
+                        <div style="display: flex; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid var(--border); border-radius: var(--radius); font-weight: 600;">
+                                <input type="radio" name="streamMode" id="streamModeSingle" value="single" checked onchange="Admin.toggleStreamMode('single')">
+                                Single Camera
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid var(--border); border-radius: var(--radius); font-weight: 600;">
+                                <input type="radio" name="streamMode" id="streamModeSplit" value="split" onchange="Admin.toggleStreamMode('split')">
+                                Split View
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Single Camera Section -->
+                    <div id="singleCameraSection">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Camera</label>
+                        <select id="streamCamera" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px;">
+                            <option value="axis">Axis PTZ (192.168.0.100)</option>
+                            <option value="R1" selected>R1 (192.168.0.101)</option>
+                            <option value="R2">R2 (192.168.0.102)</option>
+                            <option value="R3">R3 (192.168.0.103)</option>
+                        </select>
+                    </div>
+
+                    <!-- Split View Section -->
+                    <div id="splitViewSection" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <!-- Left Side -->
+                            <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+                                <h4 style="margin-bottom: 12px; font-size: 14px;">Left Side</h4>
+                                <div style="display: grid; gap: 10px;">
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Camera</label>
+                                        <select id="splitLeftCamera" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="axis">Axis PTZ</option>
+                                            <option value="R1">R1</option>
+                                            <option value="R2" selected>R2</option>
+                                            <option value="R3">R3</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Crop</label>
+                                        <select id="splitLeftCrop" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="left">Left Half</option>
+                                            <option value="right" selected>Right Half</option>
+                                            <option value="full">Full Frame</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Label</label>
+                                        <input type="text" id="splitLeftLabel" value="Top of Course" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right Side -->
+                            <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+                                <h4 style="margin-bottom: 12px; font-size: 14px;">Right Side</h4>
+                                <div style="display: grid; gap: 10px;">
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Camera</label>
+                                        <select id="splitRightCamera" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="axis">Axis PTZ</option>
+                                            <option value="R1">R1</option>
+                                            <option value="R2">R2</option>
+                                            <option value="R3" selected>R3</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Crop</label>
+                                        <select id="splitRightCrop" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="left">Left Half</option>
+                                            <option value="right" selected>Right Half</option>
+                                            <option value="full">Full Frame</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Label</label>
+                                        <input type="text" id="splitRightLabel" value="Bottom of Course" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button class="btn btn-primary" onclick="Admin.saveStreamConfig()">Save Stream Config</button>
+                        <span id="streamConfigStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="section">
             <div class="section-header">
                 <h2>Content Management</h2>
@@ -412,6 +512,9 @@
             // Load banner config
             await this.loadBannerConfig();
 
+            // Load stream config
+            await this.loadStreamConfig();
+
             // Load events
             await this.loadEvents();
 
@@ -475,6 +578,95 @@
             }
 
             this.hideLoading();
+        },
+
+        async loadStreamConfig() {
+            try {
+                const response = await fetch(`${API.MEDIA_BASE}/config/stream-config.json?t=${Date.now()}`);
+                if (!response.ok) throw new Error('Not found');
+                const config = await response.json();
+
+                if (config.mode === 'split') {
+                    document.getElementById('streamModeSplit').checked = true;
+                } else {
+                    document.getElementById('streamModeSingle').checked = true;
+                }
+                document.getElementById('streamCamera').value = config.camera || 'R1';
+
+                if (config.split) {
+                    document.getElementById('splitLeftCamera').value = config.split.left?.camera || 'R2';
+                    document.getElementById('splitLeftCrop').value = config.split.left?.crop || 'right';
+                    document.getElementById('splitLeftLabel').value = config.split.left?.label || '';
+                    document.getElementById('splitRightCamera').value = config.split.right?.camera || 'R3';
+                    document.getElementById('splitRightCrop').value = config.split.right?.crop || 'right';
+                    document.getElementById('splitRightLabel').value = config.split.right?.label || '';
+                }
+
+                this.toggleStreamMode(config.mode || 'single');
+
+                const status = document.getElementById('streamConfigStatus');
+                if (config.mode === 'split') {
+                    status.textContent = `(Split: ${config.split?.left?.camera} + ${config.split?.right?.camera})`;
+                } else {
+                    status.textContent = `(Camera: ${config.camera || 'R1'})`;
+                }
+            } catch (error) {
+                console.log('No stream config found, using defaults');
+                document.getElementById('streamConfigStatus').textContent = '(No config saved)';
+            }
+        },
+
+        async saveStreamConfig() {
+            const mode = document.getElementById('streamModeSplit').checked ? 'split' : 'single';
+            const config = {
+                mode: mode,
+                camera: document.getElementById('streamCamera').value,
+                split: {
+                    left: {
+                        camera: document.getElementById('splitLeftCamera').value,
+                        crop: document.getElementById('splitLeftCrop').value,
+                        label: document.getElementById('splitLeftLabel').value
+                    },
+                    right: {
+                        camera: document.getElementById('splitRightCamera').value,
+                        crop: document.getElementById('splitRightCrop').value,
+                        label: document.getElementById('splitRightLabel').value
+                    }
+                }
+            };
+
+            this.showLoading('Saving stream config...');
+
+            try {
+                const response = await fetch(`${this.API_URL}/save-stream-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                this.showToast('Stream config saved', 'success');
+                const status = document.getElementById('streamConfigStatus');
+                if (mode === 'split') {
+                    status.textContent = `(Split: ${config.split.left.camera} + ${config.split.right.camera})`;
+                } else {
+                    status.textContent = `(Camera: ${config.camera})`;
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                this.showToast('Failed to save: ' + error.message, 'error');
+            }
+
+            this.hideLoading();
+        },
+
+        toggleStreamMode(mode) {
+            document.getElementById('singleCameraSection').style.display = mode === 'single' ? '' : 'none';
+            document.getElementById('splitViewSection').style.display = mode === 'split' ? '' : 'none';
         },
 
         async loadEvents() {

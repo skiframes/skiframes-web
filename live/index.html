@@ -602,6 +602,7 @@
                 <span class="live-dot"></span>
                 <span id="streamStatus">Connecting...</span>
             </div>
+            <span id="streamSourceInfo" style="opacity: 0.7; font-size: 12px; margin-top: 4px; display: block;"></span>
         </section>
 
         <div class="live-layout">
@@ -854,7 +855,7 @@
             updateStatus() {
                 const el = document.getElementById('startlistStatus');
                 if (this.currentBib == null) {
-                    el.textContent = 'Enter bib # of racer currently on course to sync schedule';
+                    el.textContent = '';
                     return;
                 }
                 const idx = this.bibToIndex[this.currentBib];
@@ -1124,6 +1125,22 @@
                     document.getElementById('dvrSkipButtons').style.display = 'none';
                     document.querySelector('.stream-controls').style.display = 'none';
                 }
+
+                // Load stream source info
+                try {
+                    const streamResp = await fetch(API.MEDIA_BASE + '/config/stream-config.json?t=' + Date.now());
+                    if (streamResp.ok) {
+                        const streamConfig = await streamResp.json();
+                        const el = document.getElementById('streamSourceInfo');
+                        if (streamConfig.mode === 'split' && streamConfig.split) {
+                            const ll = streamConfig.split.left?.label || streamConfig.split.left?.camera || '';
+                            const rl = streamConfig.split.right?.label || streamConfig.split.right?.camera || '';
+                            el.textContent = `Split View: ${ll} | ${rl}`;
+                        } else {
+                            el.textContent = `Camera: ${streamConfig.camera || 'R1'}`;
+                        }
+                    }
+                } catch (e) { /* silent */ }
 
                 // Load start list if enabled in config (default: show it)
                 if (config.startListEnabled !== false) {

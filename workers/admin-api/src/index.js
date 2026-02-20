@@ -66,6 +66,10 @@ export default {
                 return await handleSaveClusters(request, env);
             }
 
+            if (url.pathname === '/save-stream-config' && request.method === 'POST') {
+                return await handleSaveStreamConfig(request, env);
+            }
+
             return new Response('Not Found', {
                 status: 404,
                 headers: corsHeaders(env, request)
@@ -406,6 +410,45 @@ async function handleSaveClusters(request, env) {
     await putToS3(env, key, JSON.stringify(data, null, 2), {
         'Cache-Control': 'no-cache, no-store, must-revalidate'
     });
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(env, request)
+        }
+    });
+}
+
+/**
+ * Handle saving stream configuration (camera source, split view)
+ */
+async function handleSaveStreamConfig(request, env) {
+    const config = await request.json();
+
+    if (!['single', 'split'].includes(config.mode)) {
+        return new Response('Invalid config: mode must be "single" or "split"', {
+            status: 400,
+            headers: corsHeaders(env, request)
+        });
+    }
+
+    const streamConfig = {
+        mode: config.mode,
+        camera: config.camera || 'R1',
+        split: config.split || null,
+        updatedAt: new Date().toISOString()
+    };
+
+    await putToS3(env, 'config/stream-config.json', JSON.stringify(streamConfig, null, 2), {
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+
+    try {
+        await invalidateCloudFront(env, '/config/stream-config.json');
+    } catch (e) {
+        console.error('CloudFront invalidation failed:', e);
+    }
 
     return new Response(JSON.stringify({ success: true }), {
         status: 200,
