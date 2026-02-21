@@ -18,13 +18,18 @@
         .live-hero {
             background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
             color: white;
-            padding: 12px 24px;
+            padding: 8px 24px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
         .live-hero h1 {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin: 0;
         }
         .live-indicator {
             display: inline-flex;
@@ -77,24 +82,19 @@
             font-weight: 700;
             margin-bottom: 4px;
         }
-        .crowdsource-note {
-            font-size: 11px;
-            color: var(--text-secondary);
-            line-height: 1.4;
-            margin-bottom: 8px;
-        }
         .search-row {
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-top: 6px;
+            margin-top: 4px;
+            margin-bottom: 6px;
         }
         .search-row input {
             flex: 1;
-            padding: 6px 8px;
+            padding: 8px 10px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            font-size: 13px;
+            font-size: 14px;
         }
         .search-row input:focus {
             outline: none;
@@ -102,7 +102,7 @@
             box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
         }
         .search-row .search-icon {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-secondary);
         }
         .athlete-row.search-match {
@@ -115,33 +115,61 @@
             align-items: center;
             gap: 8px;
         }
-        .startlist-controls label {
+        .auto-track-indicator {
+            font-size: 11px;
+            color: #166534;
+            background: #dcfce7;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+        .adjust-panel {
+            margin-top: 6px;
             font-size: 12px;
+        }
+        .adjust-panel summary {
+            cursor: pointer;
             color: var(--text-secondary);
-            font-weight: 600;
+            font-size: 11px;
+            user-select: none;
         }
-        .startlist-controls input[type="number"] {
-            width: 64px;
-            padding: 6px 8px;
+        .adjust-panel summary:hover {
+            color: var(--text);
+        }
+        .adjust-buttons {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .adjust-btn {
+            padding: 3px 8px;
             border: 1px solid var(--border);
+            background: var(--background);
             border-radius: var(--radius);
-            font-size: 14px;
-            font-weight: 600;
-            text-align: center;
-        }
-        .bib-set-btn {
-            padding: 6px 12px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
         }
-        .bib-set-btn:hover { background: #1d4ed8; }
-        .nav-buttons {
-            display: none;
+        .adjust-btn:hover { background: #e2e8f0; }
+        .adjust-btn:active { background: #cbd5e1; }
+        .adjust-btn.reset {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+        .adjust-btn.reset:hover { background: #fee2e2; }
+        .adjust-note {
+            font-size: 11px;
+            color: #b45309;
+            margin: 4px 0 2px;
+        }
+        .adjust-display {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
         }
         .dvr-legend {
             font-size: 11px;
@@ -225,30 +253,7 @@
             margin-top: 6px;
             font-variant-numeric: tabular-nums;
         }
-        .auto-detect-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-        .auto-detect-badge.active {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .auto-detect-badge.inactive {
-            background: #f1f5f9;
-            color: #64748b;
-        }
-        .auto-detect-badge .pulse-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
+        /* auto-detect badge removed — replaced by auto-track indicator */
 
         .startlist-body {
             flex: 1;
@@ -294,12 +299,21 @@
         }
         .athlete-row.done {
             opacity: 0.4;
+            cursor: pointer;
+        }
+        .athlete-row.done:hover {
+            opacity: 0.7;
+            background: #e0f2fe;
         }
         .athlete-row.current {
             background: #fef3c7;
             font-weight: 600;
             border-left: 3px solid #f59e0b;
             padding-left: 13px;
+            cursor: pointer;
+        }
+        .athlete-row.current:hover {
+            background: #fde68a;
         }
         .athlete-row.on-deck {
             background: #eff6ff;
@@ -558,10 +572,10 @@
         }
         @media (max-width: 768px) {
             .live-hero {
-                padding: 10px 16px;
+                padding: 6px 12px;
             }
             .live-hero h1 {
-                font-size: 16px;
+                font-size: 14px;
             }
             .live-layout {
                 padding: 8px;
@@ -597,12 +611,11 @@
     <main>
         <section class="live-hero" id="liveHero" style="display: none;">
             <h1 id="liveTitle">Live Stream</h1>
-            <p id="liveSubtitle" style="opacity: 0.9; margin-bottom: 6px; font-size: 14px;"></p>
+            <span id="liveSubtitle" style="opacity: 0.85; font-size: 13px;"></span>
             <div class="live-indicator">
                 <span class="live-dot"></span>
                 <span id="streamStatus">Connecting...</span>
             </div>
-            <span id="streamSourceInfo" style="opacity: 0.7; font-size: 12px; margin-top: 4px; display: block;"></span>
         </section>
 
         <div class="live-layout">
@@ -610,29 +623,33 @@
             <aside class="startlist-panel hidden" id="startlistPanel">
                 <div class="startlist-header">
                     <h2>Start List</h2>
-                    <p class="crowdsource-note">Help us track who's on course! Set the current bib number and it updates for all viewers.</p>
+                    <div class="search-row">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="athleteSearch" placeholder="Find your racer...">
+                    </div>
                     <div class="startlist-controls">
-                        <label>Bib:</label>
-                        <input type="number" id="currentBibInput" min="0" placeholder="--">
-                        <button class="bib-set-btn" id="bibSetBtn">Set</button>
                         <div class="run-toggle">
                             <button class="active" data-run="1" id="run1Btn">R1</button>
                             <button data-run="2" id="run2Btn">R2</button>
                             <button data-run="3" id="run3Btn">R3</button>
                         </div>
+                        <span class="auto-track-indicator" id="autoTrackIndicator">⏱ Auto-tracking</span>
                     </div>
-                    <div class="search-row">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="athleteSearch" placeholder="Search by bib # or name...">
-                    </div>
-                    <div class="nav-buttons" id="navButtons"></div>
                     <div class="startlist-status" id="startlistStatus"></div>
-                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
-                        <span class="auto-detect-badge inactive" id="autoDetectBadge">
-                            <span class="pulse-dot" style="display:none;"></span>
-                            Auto-detect: off
-                        </span>
-                    </div>
+                    <details class="adjust-panel" id="adjustPanel">
+                        <summary>Adjust timing</summary>
+                        <p class="adjust-note">Shifts the schedule for all viewers</p>
+                        <div class="adjust-buttons">
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(-300000)">-5m</button>
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(-60000)">-1m</button>
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(-30000)">-30s</button>
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(30000)">+30s</button>
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(60000)">+1m</button>
+                            <button class="adjust-btn" onclick="StartList.adjustTiming(300000)">+5m</button>
+                            <button class="adjust-btn reset" onclick="StartList.resetTiming()">Reset</button>
+                        </div>
+                        <div class="adjust-display" id="adjustDisplay">On schedule</div>
+                    </details>
                 </div>
                 <div class="startlist-body" id="startlistBody">
                 </div>
@@ -725,7 +742,8 @@
         const StartList = {
             data: null,
             currentRun: 1,
-            currentBib: null,
+            timeOffsetMs: 0,     // manual timing adjustment (positive = race is behind schedule)
+            autoProgressInterval: null,
             flatOrder: [],       // flat array of {bib, first, last, club, className, estTime} in race order
             bibToIndex: {},      // bib -> index in flatOrder
 
@@ -806,14 +824,25 @@
 
                 let html = '';
                 let lastClass = '';
-                const currentIdx = this.currentBib != null ? this.bibToIndex[this.currentBib] : -1;
+
+                // Time-based current index: find last athlete whose adjusted estTime <= now
+                const now = Date.now();
+                let currentIdx = -1;
+                for (let i = 0; i < this.flatOrder.length; i++) {
+                    if (this.flatOrder[i].estTime.getTime() + this.timeOffsetMs <= now) {
+                        currentIdx = i;
+                    } else {
+                        break; // flatOrder is chronologically sorted
+                    }
+                }
 
                 for (let i = 0; i < this.flatOrder.length; i++) {
                     const a = this.flatOrder[i];
 
                     // Class group header
                     if (a.className !== lastClass) {
-                        const classStart = a.estTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        const adjustedClassStart = new Date(a.estTime.getTime() + this.timeOffsetMs);
+                        const classStart = adjustedClassStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                         html += `<div class="class-group-header">
                             <span>${a.className}</span>
                             <span class="class-time">Est. ${classStart}</span>
@@ -821,7 +850,7 @@
                         lastClass = a.className;
                     }
 
-                    // Row state
+                    // Row state based on time
                     let rowClass = 'athlete-row';
                     if (currentIdx >= 0) {
                         if (i < currentIdx) rowClass += ' done';
@@ -829,7 +858,8 @@
                         else if (i === currentIdx + 1) rowClass += ' on-deck';
                     }
 
-                    const timeStr = a.estTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const adjustedTime = new Date(a.estTime.getTime() + this.timeOffsetMs);
+                    const timeStr = adjustedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
                     html += `<div class="${rowClass}" data-bib="${a.bib}" data-idx="${i}">
                         <span class="bib">${a.bib}</span>
@@ -841,87 +871,183 @@
 
                 body.innerHTML = html;
 
-                // Scroll to current racer
-                if (currentIdx >= 0) {
+                // Scroll to current racer (suppress if user is searching)
+                const searchActive = document.getElementById('athleteSearch').value.trim().length > 0;
+                if (currentIdx >= 0 && !searchActive) {
                     const currentRow = body.querySelector('.athlete-row.current');
                     if (currentRow) {
                         currentRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
                     }
                 }
 
-                this.updateStatus();
+                // Make done and current rows clickable for DVR rewind (local only, no broadcast)
+                body.querySelectorAll('.athlete-row.done, .athlete-row.current').forEach(row => {
+                    row.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const idx = parseInt(row.dataset.idx);
+                        if (!isNaN(idx)) StartList.seekToAthlete(idx);
+                    });
+                });
+
+                this.updateStatus(currentIdx);
             },
 
-            updateStatus() {
+            seekToAthlete(idx) {
+                const athlete = this.flatOrder[idx];
+                if (!athlete || !athlete.estTime) return;
+
+                const video = document.getElementById('liveVideo');
+                if (!video) return;
+
+                const statusEl = document.getElementById('streamStatus');
+                const now = new Date();
+
+                // Don't seek to future athletes
+                if (athlete.estTime > now) {
+                    if (statusEl) statusEl.textContent = `Bib ${athlete.bib} hasn't started yet`;
+                    return;
+                }
+
+                // Try seeking within current DVR buffer first
+                if (streamStartTime && video.seekable.length > 0) {
+                    const start = video.seekable.start(0);
+                    const end = video.seekable.end(video.seekable.length - 1);
+                    const targetTime = (athlete.estTime.getTime() - streamStartTime.getTime()) / 1000;
+
+                    if (targetTime >= start && targetTime <= end) {
+                        video.currentTime = targetTime;
+                        video.play();
+                        if (statusEl) statusEl.textContent = '';
+                        return;
+                    }
+                }
+
+                // Outside DVR buffer — use MediaPackage startover URL
+                const startTime = new Date(athlete.estTime.getTime() - 5000); // 5s before
+                const isoTime = startTime.toISOString().replace(/\.\d{3}Z$/, 'Z');
+                const startoverUrl = STREAM_URL + '?aws.startTime=' + isoTime;
+
+                if (statusEl) statusEl.textContent = `Loading Bib ${athlete.bib}...`;
+
+                if (hls) {
+                    hls.loadSource(startoverUrl);
+                    hls.once(Hls.Events.MANIFEST_PARSED, function() {
+                        video.play().catch(() => {});
+                        if (statusEl) statusEl.textContent = `Watching Bib ${athlete.bib} ${athlete.first} ${athlete.last}`;
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = startoverUrl;
+                    video.play().catch(() => {});
+                }
+            },
+
+            updateStatus(currentIdx) {
                 const el = document.getElementById('startlistStatus');
-                if (this.currentBib == null) {
+                if (!this.flatOrder.length) {
                     el.textContent = '';
                     return;
                 }
-                const idx = this.bibToIndex[this.currentBib];
-                if (idx == null) {
-                    el.textContent = `Bib ${this.currentBib} not found in start list`;
+
+                const now = Date.now();
+                const firstEstTime = this.flatOrder[0].estTime.getTime() + this.timeOffsetMs;
+                const lastEstTime = this.flatOrder[this.flatOrder.length - 1].estTime.getTime() + this.timeOffsetMs;
+
+                if (currentIdx == null || currentIdx < 0) {
+                    // Race hasn't started yet
+                    const minsUntil = Math.ceil((firstEstTime - now) / 60000);
+                    if (minsUntil > 0) {
+                        el.textContent = `Run ${this.currentRun} starts in ${minsUntil} min`;
+                    } else {
+                        el.textContent = `Run ${this.currentRun} starting now`;
+                    }
                     return;
                 }
-                const remaining = this.flatOrder.length - idx - 1;
-                const a = this.flatOrder[idx];
-                el.textContent = `On course: #${a.bib} ${a.first} ${a.last} \u2022 ${remaining} remaining \u2022 Run ${this.currentRun}`;
+
+                if (currentIdx >= this.flatOrder.length - 1) {
+                    el.textContent = `Run ${this.currentRun} complete`;
+                    return;
+                }
+
+                const remaining = this.flatOrder.length - currentIdx - 1;
+                const a = this.flatOrder[currentIdx];
+                el.textContent = `#${a.bib} ${a.first} ${a.last} on course \u2022 ${remaining} remaining \u2022 Run ${this.currentRun}`;
             },
 
-            setBib(bib, broadcast = false) {
-                if (bib === '' || bib == null) {
-                    this.currentBib = null;
-                } else {
-                    bib = parseInt(bib);
-                    if (isNaN(bib)) return;
-                    this.currentBib = bib;
-
-                    // Recalculate estimated times based on current bib and current real time
-                    // The current bib is on course NOW, so shift all estimated times accordingly
-                    const idx = this.bibToIndex[bib];
-                    if (idx != null) {
-                        const now = new Date();
-                        const interval = this.data.interval_seconds * 1000;
-                        for (let i = 0; i < this.flatOrder.length; i++) {
-                            this.flatOrder[i].estTime = new Date(now.getTime() + (i - idx) * interval);
-                        }
-                    }
-                }
+            adjustTiming(deltaMs) {
+                this.timeOffsetMs += deltaMs;
                 this.render();
-
-                // Broadcast to S3 so all viewers sync
-                if (broadcast) {
-                    this.broadcastBib();
-                }
+                this.updateAdjustDisplay();
+                this.broadcastOffset();
             },
 
-            moveBy(delta) {
-                if (!this.flatOrder.length) return;
-                let idx = this.currentBib != null ? this.bibToIndex[this.currentBib] : -1;
-                if (idx == null || idx < 0) idx = 0;
-                else idx = Math.max(0, Math.min(this.flatOrder.length - 1, idx + delta));
-                const newBib = this.flatOrder[idx].bib;
-                document.getElementById('currentBibInput').value = newBib;
-                this.setBib(newBib, true);
+            resetTiming() {
+                this.timeOffsetMs = 0;
+                this.render();
+                this.updateAdjustDisplay();
+                this.broadcastOffset();
             },
 
-            async broadcastBib() {
-                // Push current bib to S3 via the admin API so all viewers sync
-                const data = {
-                    bib: this.currentBib,
-                    run: this.currentRun,
-                    timestamp: new Date().toISOString()
-                };
+            async broadcastOffset() {
                 try {
                     await fetch('https://skiframes-admin-api.avillach.workers.dev/save-bib-state', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(data)
+                        body: JSON.stringify({
+                            timeOffsetMs: this.timeOffsetMs,
+                            run: this.currentRun,
+                            timestamp: new Date().toISOString()
+                        })
                     });
                 } catch (e) {
-                    // Fallback: try direct S3 upload won't work from browser.
-                    // Silent fail - manual set still works locally.
                     console.warn('Broadcast failed:', e);
+                }
+            },
+
+            updateAdjustDisplay() {
+                const el = document.getElementById('adjustDisplay');
+                if (!el) return;
+                if (this.timeOffsetMs === 0) {
+                    el.textContent = 'On schedule';
+                } else {
+                    const sign = this.timeOffsetMs > 0 ? '+' : '-';
+                    const abs = Math.abs(this.timeOffsetMs);
+                    const min = Math.floor(abs / 60000);
+                    const sec = Math.floor((abs % 60000) / 1000);
+                    el.textContent = `Adjusted: ${sign}${min}:${sec.toString().padStart(2, '0')}`;
+                }
+            },
+
+            startAutoProgress() {
+                // Auto-progress the start list every 10 seconds based on wall clock
+                // Also polls shared timing offset from S3 so all viewers stay in sync
+                this.render(); // initial render
+                this.autoProgressInterval = setInterval(async () => {
+                    // Poll shared timing offset
+                    try {
+                        const resp = await fetch('https://media.skiframes.com/config/bib-state.json?t=' + Date.now());
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            const age = (Date.now() - new Date(data.timestamp).getTime()) / 1000;
+                            if (age < 3600 && data.timeOffsetMs != null) {
+                                if (data.timeOffsetMs !== this.timeOffsetMs) {
+                                    this.timeOffsetMs = data.timeOffsetMs;
+                                    this.updateAdjustDisplay();
+                                }
+                                if (data.run && data.run !== this.currentRun) {
+                                    this.setRun(data.run);
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                    this.render();
+                }, 10000);
+                console.log('Auto-progress timer started (10s interval, polling shared state)');
+            },
+
+            stopAutoProgress() {
+                if (this.autoProgressInterval) {
+                    clearInterval(this.autoProgressInterval);
+                    this.autoProgressInterval = null;
                 }
             },
 
@@ -931,111 +1057,19 @@
                 document.getElementById('run2Btn').classList.toggle('active', run === 2);
                 const run3Btn = document.getElementById('run3Btn');
                 if (run3Btn) run3Btn.classList.toggle('active', run === 3);
-                this.currentBib = null;
-                document.getElementById('currentBibInput').value = '';
+                this.timeOffsetMs = 0; // reset offset for new run
                 this.buildOrder();
                 this.render();
+                this.updateAdjustDisplay();
             },
 
-            // =============================================================
-            // AUTO-DETECT: poll bib-detected.json from camera OCR
-            // =============================================================
-            autoDetectInterval: null,
-            lastAutoTimestamp: null,
-
-            startAutoDetect() {
-                const POLL_URL = 'https://media.skiframes.com/config/bib-detected.json';
-                const BIB_STATE_URL = 'https://media.skiframes.com/config/bib-state.json';
-                const POLL_INTERVAL = 4000; // 4 seconds
-
-                const badge = document.getElementById('autoDetectBadge');
-
-                this.autoDetectInterval = setInterval(async () => {
-                    // Poll shared bib state (crowdsourced from any viewer's Set button)
-                    try {
-                        const resp = await fetch(BIB_STATE_URL + '?t=' + Date.now());
-                        if (resp.ok) {
-                            const data = await resp.json();
-                            if (data.timestamp && data.timestamp !== this.lastAutoTimestamp) {
-                                const age = (Date.now() - new Date(data.timestamp).getTime()) / 1000;
-                                if (age < 60) {
-                                    this.lastAutoTimestamp = data.timestamp;
-
-                                    // Sync run if changed
-                                    if (data.run && data.run !== this.currentRun) {
-                                        this.setRun(data.run);
-                                    }
-
-                                    if (data.bib && this.bibToIndex[data.bib] != null && data.bib !== this.currentBib) {
-                                        console.log(`Synced bib from shared state: #${data.bib}`);
-                                        document.getElementById('currentBibInput').value = data.bib;
-                                        this.setBib(data.bib, false); // don't re-broadcast
-                                    }
-
-                                    badge.className = 'auto-detect-badge active';
-                                    badge.querySelector('.pulse-dot').style.display = '';
-                                    badge.childNodes[badge.childNodes.length - 1].textContent =
-                                        data.bib ? ` Synced: #${data.bib}` : ' Synced';
-                                    return; // shared state takes priority
-                                }
-                            }
-                        }
-                    } catch (e) {}
-
-                    // Fallback: poll camera OCR auto-detection
-                    try {
-                        const resp = await fetch(POLL_URL + '?t=' + Date.now());
-                        if (!resp.ok) return;
-                        const data = await resp.json();
-
-                        if (data.timestamp) {
-                            const age = (Date.now() - new Date(data.timestamp).getTime()) / 1000;
-                            if (age < 30) {
-                                badge.className = 'auto-detect-badge active';
-                                badge.querySelector('.pulse-dot').style.display = '';
-                                badge.childNodes[badge.childNodes.length - 1].textContent =
-                                    data.bib ? ` Auto: #${data.bib}` : ' Auto: scanning...';
-
-                                if (data.bib && this.bibToIndex[data.bib] != null && data.bib !== this.currentBib) {
-                                    document.getElementById('currentBibInput').value = data.bib;
-                                    this.setBib(data.bib, false);
-                                }
-                            } else {
-                                badge.className = 'auto-detect-badge inactive';
-                                badge.querySelector('.pulse-dot').style.display = 'none';
-                                badge.childNodes[badge.childNodes.length - 1].textContent = ' Waiting for sync...';
-                            }
-                        }
-                    } catch (e) {}
-                }, POLL_INTERVAL);
-
-                console.log('Auto-detect polling started');
-            },
-
-            stopAutoDetect() {
-                if (this.autoDetectInterval) {
-                    clearInterval(this.autoDetectInterval);
-                    this.autoDetectInterval = null;
-                }
-                const badge = document.getElementById('autoDetectBadge');
-                badge.className = 'auto-detect-badge inactive';
-                badge.querySelector('.pulse-dot').style.display = 'none';
-                badge.childNodes[badge.childNodes.length - 1].textContent = ' Auto-detect: off';
-            }
+            // Auto-detect removed — replaced by time-based auto-progress
         };
 
         // Start list event listeners
-        document.getElementById('bibSetBtn').addEventListener('click', () => {
-            StartList.setBib(document.getElementById('currentBibInput').value, true);
-        });
-        document.getElementById('currentBibInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                StartList.setBib(e.target.value, true);
-            }
-        });
-        document.getElementById('run1Btn').addEventListener('click', () => { StartList.setRun(1); StartList.broadcastBib(); });
-        document.getElementById('run2Btn').addEventListener('click', () => { StartList.setRun(2); StartList.broadcastBib(); });
-        document.getElementById('run3Btn').addEventListener('click', () => { StartList.setRun(3); StartList.broadcastBib(); });
+        document.getElementById('run1Btn').addEventListener('click', () => { StartList.setRun(1); });
+        document.getElementById('run2Btn').addEventListener('click', () => { StartList.setRun(2); });
+        document.getElementById('run3Btn').addEventListener('click', () => { StartList.setRun(3); });
 
         // DVR skip buttons: seek video by time offset
         function dvrSkip(seconds) {
@@ -1051,18 +1085,7 @@
         document.getElementById('skipFwd5').addEventListener('click', () => dvrSkip(5));
         document.getElementById('skipFwd30').addEventListener('click', () => dvrSkip(30));
 
-        // Click on athlete row to set as current bib (broadcasts)
-        document.getElementById('startlistBody').addEventListener('click', (e) => {
-            const row = e.target.closest('.athlete-row');
-            if (row) {
-                const bib = row.dataset.bib;
-                document.getElementById('currentBibInput').value = bib;
-                StartList.setBib(parseInt(bib), true);
-                // Clear search on click-to-set
-                document.getElementById('athleteSearch').value = '';
-                document.querySelectorAll('.athlete-row.search-match').forEach(r => r.classList.remove('search-match'));
-            }
-        });
+        // Athlete row clicks for DVR rewind are handled inside StartList.render()
 
         // Search by bib number or athlete name
         document.getElementById('athleteSearch').addEventListener('input', (e) => {
@@ -1126,26 +1149,11 @@
                     document.querySelector('.stream-controls').style.display = 'none';
                 }
 
-                // Load stream source info
-                try {
-                    const streamResp = await fetch(API.MEDIA_BASE + '/config/stream-config.json?t=' + Date.now());
-                    if (streamResp.ok) {
-                        const streamConfig = await streamResp.json();
-                        const el = document.getElementById('streamSourceInfo');
-                        if (streamConfig.mode === 'split' && streamConfig.split) {
-                            const ll = streamConfig.split.left?.label || streamConfig.split.left?.camera || '';
-                            const rl = streamConfig.split.right?.label || streamConfig.split.right?.camera || '';
-                            el.textContent = `Split View: ${ll} | ${rl}`;
-                        } else {
-                            el.textContent = `Camera: ${streamConfig.camera || 'R1'}`;
-                        }
-                    }
-                } catch (e) { /* silent */ }
 
                 // Load start list if enabled in config (default: show it)
                 if (config.startListEnabled !== false) {
                     await StartList.load();
-                    StartList.startAutoDetect();
+                    StartList.startAutoProgress();
                 }
             } catch (e) {
                 console.error('Error loading live config:', e);
@@ -1155,7 +1163,7 @@
                 document.getElementById('dvrSkipButtons').style.display = '';
                 initPlayer();
                 await StartList.load();
-                StartList.startAutoDetect();
+                StartList.startAutoProgress();
             }
         })();
 
@@ -1316,6 +1324,18 @@
         }
 
         function jumpToLive() {
+            // If on a startover URL, reload the live stream
+            if (hls && hls.url && hls.url.includes('aws.startTime')) {
+                hls.loadSource(STREAM_URL);
+                hls.once(Hls.Events.MANIFEST_PARSED, function() {
+                    if (hls.liveSyncPosition) {
+                        video.currentTime = hls.liveSyncPosition;
+                    }
+                    video.play().catch(() => {});
+                    updateStatus('LIVE', '');
+                });
+                return;
+            }
             if (hls && hls.liveSyncPosition) {
                 video.currentTime = hls.liveSyncPosition;
             } else if (video.seekable.length > 0) {
