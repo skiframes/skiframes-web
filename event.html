@@ -91,8 +91,10 @@
                 <div class="sort-buttons">
                     <button class="sort-btn active" data-sort="rank">Rank</button>
                     <button class="sort-btn" data-sort="duration">Time</button>
+                    <button class="sort-btn" data-sort="bib">Bib</button>
                 </div>
                 <span class="results-count" id="videoCount">0 videos</span>
+                <button id="virtualRaceBtn" class="btn btn-primary btn-sm vr-open-btn" style="display: none;">Virtual Race</button>
             </div>
 
             <div id="videosGrid" class="video-table-container">
@@ -191,6 +193,47 @@
         </div>
     </div>
 
+    <!-- Virtual Race Modal -->
+    <div id="virtualRaceModal" class="virtual-race-modal" style="display: none;">
+        <div class="vr-toolbar">
+            <div class="vr-title">Virtual Race</div>
+            <div class="vr-mode-tabs">
+                <button class="vr-mode-tab" data-mode="PM" onclick="VirtualRace.setMode('PM')">PM</button>
+                <button class="vr-mode-tab active" data-mode="V" onclick="VirtualRace.setMode('V')">V</button>
+                <button class="vr-mode-tab" data-mode="AI" onclick="VirtualRace.setMode('AI')">AI</button>
+            </div>
+            <button class="vr-close" onclick="VirtualRace.close()">&times;</button>
+        </div>
+        <div class="vr-selectors">
+            <div class="vr-selector-group">
+                <label>Athlete A</label>
+                <select id="vrSelectA" class="vr-select" onchange="VirtualRace.selectAthlete('A', this.value)"></select>
+            </div>
+            <div class="vr-vs">VS</div>
+            <div class="vr-selector-group">
+                <label>Athlete B</label>
+                <select id="vrSelectB" class="vr-select" onchange="VirtualRace.selectAthlete('B', this.value)"></select>
+            </div>
+            <div id="vrDiff" class="vr-diff"></div>
+        </div>
+        <div id="vrContent" class="vr-content">
+            <!-- Populated by JS: side-by-side videos, montages, or AI -->
+        </div>
+        <div id="vrControlsSection" class="vr-controls" style="display: none;">
+            <button id="vrPlayBtn" class="btn btn-sm btn-primary" onclick="VirtualRace.togglePlay()">&#9654; Play</button>
+            <button class="btn btn-sm" onclick="VirtualRace.restart()">&#8634; Restart</button>
+            <span class="vr-divider"></span>
+            <button class="btn btn-sm" onclick="VirtualRace.frameStep(-1)">&#9664; Frame</button>
+            <button class="btn btn-sm" onclick="VirtualRace.frameStep(1)">Frame &#9654;</button>
+            <span class="vr-divider"></span>
+            <button class="vr-speed-btn" data-speed="0.25" onclick="VirtualRace.setSpeed(0.25)">0.25x</button>
+            <button class="vr-speed-btn" data-speed="0.5" onclick="VirtualRace.setSpeed(0.5)">0.5x</button>
+            <button class="vr-speed-btn active" data-speed="1" onclick="VirtualRace.setSpeed(1)">1x</button>
+            <span class="vr-divider"></span>
+            <span id="vrTimeDisplay" class="vr-time-display">0.00s</span>
+        </div>
+    </div>
+
     <!-- Download Progress -->
     <div id="downloadProgress" class="download-progress" style="display: none;">
         <div class="download-progress-content">
@@ -228,6 +271,7 @@
     <script src="js/player.js"></script>
     <script src="js/download.js"></script>
     <script src="js/clustering.js"></script>
+    <script src="js/virtual-race.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

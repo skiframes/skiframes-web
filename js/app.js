@@ -386,6 +386,9 @@ const App = {
             document.getElementById('imageModal')
         );
 
+        // Setup Virtual Race button
+        this.setupVirtualRace(manifest);
+
         // Start auto-refresh polling for new montages
         this.startMontagePolling(manifest.event_id);
     },
@@ -607,6 +610,21 @@ const App = {
         });
     },
 
+    setupVirtualRace(manifest) {
+        const btn = document.getElementById('virtualRaceBtn');
+        if (!btn) return;
+
+        // Show button if there are at least 2 athletes (videos) or 2 montages
+        const videos = (manifest.content.videos || []).filter(v => !v.is_comparison);
+        const montages = manifest.content.montages || [];
+        if (videos.length >= 2 || montages.length >= 2) {
+            btn.style.display = 'inline-flex';
+            btn.addEventListener('click', () => {
+                VirtualRace.open(manifest);
+            });
+        }
+    },
+
     initMontageSpeedFilter(manifest) {
         const montages = manifest.content.montages || [];
         const variants = Filters.getVariantsSlowestFirst(montages);
@@ -811,6 +829,8 @@ const App = {
         switch (this.state.sortBy) {
             case 'duration':
                 return Filters.sortVideosByDuration(videos);
+            case 'bib':
+                return Filters.sortVideosByBib(videos);
             case 'rank':
             default:
                 return Filters.sortVideosByRank(videos);
@@ -1091,12 +1111,14 @@ const App = {
 
             // Single card (fastest itself, or showFastest is off)
             const playBtn = montage.video_url ? '<button class="montage-play-btn" title="Play video">&#9654;</button>' : '';
+            const trBtn = montage.trajectory_url ? '<button class="montage-tr-btn" title="View trajectory">TR</button>' : '';
             return `
                 <div class="montage-card" data-montage-id="${montage.id}">
                     <div class="montage-thumbnail">
                         ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Montage">` : ''}
                         ${timeOverlay}
                         ${fastestBadge}
+                        ${trBtn}
                         ${playBtn}
                     </div>
                     <div class="montage-card-content">
@@ -1108,6 +1130,20 @@ const App = {
 
         // Add click handlers
         container.querySelectorAll('.montage-card').forEach(card => {
+            // TR button opens trajectory video
+            const trBtn = card.querySelector('.montage-tr-btn');
+            if (trBtn) {
+                trBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const montage = montages.find(m => m.id === card.dataset.montageId);
+                    if (montage && montage.trajectory_url) {
+                        const videoUrl = API.getMediaUrl(montage.trajectory_url, eventId);
+                        const title = `Run ${montage.run_number || '?'} — Trajectory`;
+                        const meta = montage.elapsed_time != null ? `${montage.elapsed_time.toFixed(2)}s` : '';
+                        Player.open(videoUrl, title, meta, videoUrl);
+                    }
+                });
+            }
             // Play button opens video player
             const playBtn = card.querySelector('.montage-play-btn');
             if (playBtn) {
@@ -1360,6 +1396,7 @@ const App = {
             ? `<span class="montage-time-overlay">${montage.elapsed_time.toFixed(2)}s</span>`
             : '';
         const playBtn = montage.video_url ? '<button class="montage-play-btn" title="Play video">&#9654;</button>' : '';
+        const trBtn = montage.trajectory_url ? '<button class="montage-tr-btn" title="View trajectory">TR</button>' : '';
 
         return `
             <div class="montage-card" data-montage-id="${montage.id}" data-run-number="${montage.run_number}"
@@ -1367,6 +1404,7 @@ const App = {
                 <div class="montage-thumbnail">
                     ${montage.thumb_url ? `<img src="${API.getMediaUrl(montage.thumb_url, eventId)}" alt="Run ${montage.run_number}">` : ''}
                     ${timeOverlay}
+                    ${trBtn}
                     ${playBtn}
                 </div>
                 <div class="montage-card-content">
@@ -1408,6 +1446,20 @@ const App = {
                 .sort((a, b) => a.run_number - b.run_number);
 
             runs.querySelectorAll('.montage-card').forEach(card => {
+                // TR button opens trajectory video
+                const trBtn = card.querySelector('.montage-tr-btn');
+                if (trBtn) {
+                    trBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const montage = athleteMontages.find(m => m.id === card.dataset.montageId);
+                        if (montage && montage.trajectory_url) {
+                            const videoUrl = API.getMediaUrl(montage.trajectory_url, eventId);
+                            const title = `Run ${montage.run_number || '?'} — Trajectory`;
+                            const meta = montage.elapsed_time != null ? `${montage.elapsed_time.toFixed(2)}s` : '';
+                            Player.open(videoUrl, title, meta, videoUrl);
+                        }
+                    });
+                }
                 // Play button opens video player
                 const playBtn = card.querySelector('.montage-play-btn');
                 if (playBtn) {
