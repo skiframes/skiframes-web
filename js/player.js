@@ -539,8 +539,89 @@ const ImageViewer = {
                         this.toggleComparison();
                     }
                     break;
+                case 'd': case 'D':
+                    e.preventDefault();
+                    this.promptDelete();
+                    break;
             }
         });
+    },
+
+    /**
+     * Prompt for password and delete the current montage
+     */
+    async promptDelete() {
+        const montage = this.montages[this.currentIndex];
+        if (!montage || !this.eventId) return;
+
+        // Get password from session or prompt
+        let password = sessionStorage.getItem('skiframes_delete_pw') || '';
+        if (!password) {
+            password = prompt('Enter delete password:');
+            if (!password) return;
+        }
+
+        // Confirm deletion
+        const runNum = montage.run_number || '?';
+        if (!confirm(`Delete Run ${runNum}?\nThis removes all photos and videos for this run.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('https://skiframes-admin-api.avillach.workers.dev/delete-montage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventId: this.eventId,
+                    runNumber: montage.run_number,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    sessionStorage.removeItem('skiframes_delete_pw');
+                }
+                alert('Delete failed: ' + (result.error || response.statusText));
+                return;
+            }
+
+            // Save valid password for session
+            sessionStorage.setItem('skiframes_delete_pw', password);
+
+            // Remove from local state
+            const deletedRunNumber = montage.run_number;
+
+            // Update App state - remove all variants of this run
+            if (App.state.currentEvent?.content?.montages) {
+                App.state.currentEvent.content.montages =
+                    App.state.currentEvent.content.montages.filter(m => m.run_number !== deletedRunNumber);
+            }
+
+            // Update local montages array
+            this.montages = this.montages.filter(m => m.run_number !== deletedRunNumber);
+
+            // Navigate or close
+            if (this.montages.length === 0) {
+                this.close();
+            } else if (this.currentIndex >= this.montages.length) {
+                this.loadMontage(this.montages.length - 1);
+            } else {
+                this.loadMontage(this.currentIndex);
+            }
+
+            // Re-render the grid
+            if (typeof App !== 'undefined' && App.renderEventContent) {
+                App.renderEventContent();
+            }
+
+            console.log(`Deleted run ${deletedRunNumber} (${result.deleted} files)`);
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Delete error: ' + error.message);
+        }
     }
 };
 

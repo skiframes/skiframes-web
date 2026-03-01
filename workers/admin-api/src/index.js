@@ -70,6 +70,10 @@ export default {
                 return await handleSaveStreamConfig(request, env);
             }
 
+            if (url.pathname === '/delete-montage' && request.method === 'POST') {
+                return await handleDeleteMontage(request, env);
+            }
+
             return new Response('Not Found', {
                 status: 404,
                 headers: corsHeaders(env, request)
@@ -284,6 +288,7 @@ async function handleSaveBibState(request, env) {
     const bibState = {
         bib: data.bib || null,
         run: data.run || 1,
+        timeOffsetMs: data.timeOffsetMs != null ? data.timeOffsetMs : undefined,
         timestamp: new Date().toISOString()
     };
 
@@ -418,6 +423,160 @@ async function handleSaveClusters(request, env) {
             ...corsHeaders(env, request)
         }
     });
+}
+
+/**
+ * Handle deletion of a single montage run (all FPS variants + video)
+ * Password protected - requires "skiframes2026"
+ */
+async function handleDeleteMontage(request, env) {
+    const { eventId, runNumber, password } = await request.json();
+
+    // Verify password
+    const DELETE_PASSWORD = env.DELETE_PASSWORD || 'skiframes2026';
+    if (password !== DELETE_PASSWORD) {
+        return new Response(JSON.stringify({ error: 'Invalid password' }), {
+            status: 403,
+            headers: {
+                'Content-Type': 'application/json',
+                ...corsHeaders(env, request)
+            }
+        });
+    }
+
+    if (!eventId || runNumber === undefined) {
+        return new Response(JSON.stringify({ error: 'Missing eventId or runNumber' }), {
+            status: 400,
+            headers: {
+                'Content-Type': 'application/json',
+                ...corsHeaders(env, request)
+            }
+        });
+    }
+
+    try {
+        // Get current manifest to find all files for this run
+        const manifestKey = `events/${eventId}/manifest.json`;
+        const manifest = await getFromS3(env, manifestKey);
+
+        if (!manifest) {
+            return new Response(JSON.stringify({ error: 'Event not found' }), {
+                status: 404,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...corsHeaders(env, request)
+                }
+            });
+        }
+
+        // Find the run in manifest.runs[]
+        const run = manifest.runs?.find(r => r.run_number === runNumber);
+        if (!run) {
+            return new Response(JSON.stringify({ error: `Run ${runNumber} not found` }), {
+                status: 404,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...corsHeaders(env, request)
+                }
+            });
+        }
+
+        // Collect all file paths to delete
+        const filesToDelete = [];
+        const invalidationPaths = [];
+
+        // Delete all variant files (fullres and thumbnails)
+        if (run.variants) {
+            for (const [variantName, variant] of Object.entries(run.variants)) {
+                if (variant.fullres) {
+                    filesToDelete.push(`events/${eventId}/${variant.fullres}`);
+                    invalidationPaths.push(`/events/${eventId}/${variant.fullres}`);
+                }
+                if (variant.thumbnail) {
+                    filesToDelete.push(`events/${eventId}/${variant.thumbnail}`);
+                    invalidationPaths.push(`/events/${eventId}/${variant.thumbnail}`);
+                }
+            }
+        }
+
+        // Delete video if exists
+        if (run.video_url) {
+            filesToDelete.push(`events/${eventId}/${run.video_url}`);
+            invalidationPaths.push(`/events/${eventId}/${run.video_url}`);
+        }
+
+        // Delete trajectory video if exists
+        if (run.trajectory_url) {
+            filesToDelete.push(`events/${eventId}/${run.trajectory_url}`);
+            invalidationPaths.push(`/events/${eventId}/${run.trajectory_url}`);
+        }
+
+        // Delete files from S3
+        for (const key of filesToDelete) {
+            try {
+                await deleteFromS3(env, key);
+            } catch (e) {
+                console.error(`Failed to delete ${key}:`, e);
+            }
+        }
+
+        // Remove run from manifest
+        manifest.runs = manifest.runs.filter(r => r.run_number !== runNumber);
+
+        // Save updated manifest
+        await putToS3(env, manifestKey, JSON.stringify(manifest, null, 2));
+        invalidationPaths.push(`/events/${eventId}/manifest.json`);
+
+        // Update root index.json with new montage count
+        try {
+            const index = await getFromS3(env, 'index.json');
+            if (index && index.events) {
+                const eventIndex = index.events.findIndex(e => e.event_id === eventId);
+                if (eventIndex !== -1) {
+                    // Count remaining montages (runs * variants)
+                    let montageCount = 0;
+                    for (const r of manifest.runs || []) {
+                        montageCount += Object.keys(r.variants || {}).length;
+                    }
+                    index.events[eventIndex].montage_count = montageCount;
+                    await putToS3(env, 'index.json', JSON.stringify(index, null, 2));
+                    invalidationPaths.push('/index.json');
+                }
+            }
+        } catch (e) {
+            console.error('Failed to update index:', e);
+        }
+
+        // Invalidate CloudFront cache
+        if (invalidationPaths.length > 0) {
+            try {
+                await invalidateCloudFrontPaths(env, invalidationPaths);
+            } catch (e) {
+                console.error('CloudFront invalidation failed (non-fatal):', e);
+            }
+        }
+
+        return new Response(JSON.stringify({
+            success: true,
+            deleted: filesToDelete.length,
+            runNumber: runNumber
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                ...corsHeaders(env, request)
+            }
+        });
+    } catch (error) {
+        console.error('Delete montage error:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                ...corsHeaders(env, request)
+            }
+        });
+    }
 }
 
 /**
