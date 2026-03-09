@@ -311,7 +311,7 @@
                 <div style="display: grid; gap: 16px;">
                     <div>
                         <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Stream Mode</label>
-                        <div style="display: flex; gap: 8px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid var(--border); border-radius: var(--radius); font-weight: 600;">
                                 <input type="radio" name="streamMode" id="streamModeSingle" value="single" checked onchange="Admin.toggleStreamMode('single')">
                                 Single Camera
@@ -319,6 +319,10 @@
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid var(--border); border-radius: var(--radius); font-weight: 600;">
                                 <input type="radio" name="streamMode" id="streamModeSplit" value="split" onchange="Admin.toggleStreamMode('split')">
                                 Split View
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 16px; border: 2px solid var(--border); border-radius: var(--radius); font-weight: 600;">
+                                <input type="radio" name="streamMode" id="streamModePip" value="pip" onchange="Admin.toggleStreamMode('pip')">
+                                Picture-in-Picture
                             </label>
                         </div>
                     </div>
@@ -388,6 +392,57 @@
                                     <div>
                                         <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Label</label>
                                         <input type="text" id="splitRightLabel" value="Bottom of Course" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PIP View Section -->
+                    <div id="pipViewSection" style="display: none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <!-- Main Camera -->
+                            <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+                                <h4 style="margin-bottom: 12px; font-size: 14px;">Main Camera (Full Screen)</h4>
+                                <div>
+                                    <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Camera</label>
+                                    <select id="pipMainCamera" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                        <option value="axis">Axis PTZ</option>
+                                        <option value="R1" selected>R1</option>
+                                        <option value="R2">R2</option>
+                                        <option value="R3">R3</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- PIP Overlay -->
+                            <div style="background: var(--background); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+                                <h4 style="margin-bottom: 12px; font-size: 14px;">PIP Overlay</h4>
+                                <div style="display: grid; gap: 10px;">
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Camera</label>
+                                        <select id="pipOverlayCamera" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="axis">Axis PTZ</option>
+                                            <option value="R1">R1</option>
+                                            <option value="R2" selected>R2</option>
+                                            <option value="R3">R3</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Position</label>
+                                        <select id="pipPosition" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="top-left">Top Left</option>
+                                            <option value="top-right">Top Right</option>
+                                            <option value="bottom-left">Bottom Left</option>
+                                            <option value="bottom-right" selected>Bottom Right</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Size</label>
+                                        <select id="pipSize" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                            <option value="25" selected>25% (Small)</option>
+                                            <option value="33">33% (Medium)</option>
+                                            <option value="50">50% (Large)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -588,6 +643,8 @@
 
                 if (config.mode === 'split') {
                     document.getElementById('streamModeSplit').checked = true;
+                } else if (config.mode === 'pip') {
+                    document.getElementById('streamModePip').checked = true;
                 } else {
                     document.getElementById('streamModeSingle').checked = true;
                 }
@@ -602,11 +659,20 @@
                     document.getElementById('splitRightLabel').value = config.split.right?.label || '';
                 }
 
+                if (config.pip) {
+                    document.getElementById('pipMainCamera').value = config.camera || 'R1';
+                    document.getElementById('pipOverlayCamera').value = config.pip.camera || 'R2';
+                    document.getElementById('pipPosition').value = config.pip.position || 'bottom-right';
+                    document.getElementById('pipSize').value = config.pip.size || '25';
+                }
+
                 this.toggleStreamMode(config.mode || 'single');
 
                 const status = document.getElementById('streamConfigStatus');
                 if (config.mode === 'split') {
                     status.textContent = `(Split: ${config.split?.left?.camera} + ${config.split?.right?.camera})`;
+                } else if (config.mode === 'pip') {
+                    status.textContent = `(PIP: ${config.camera} + ${config.pip?.camera})`;
                 } else {
                     status.textContent = `(Camera: ${config.camera || 'R1'})`;
                 }
@@ -617,10 +683,16 @@
         },
 
         async saveStreamConfig() {
-            const mode = document.getElementById('streamModeSplit').checked ? 'split' : 'single';
+            let mode = 'single';
+            if (document.getElementById('streamModeSplit').checked) {
+                mode = 'split';
+            } else if (document.getElementById('streamModePip').checked) {
+                mode = 'pip';
+            }
+
             const config = {
                 mode: mode,
-                camera: document.getElementById('streamCamera').value,
+                camera: mode === 'pip' ? document.getElementById('pipMainCamera').value : document.getElementById('streamCamera').value,
                 split: {
                     left: {
                         camera: document.getElementById('splitLeftCamera').value,
@@ -632,6 +704,11 @@
                         crop: document.getElementById('splitRightCrop').value,
                         label: document.getElementById('splitRightLabel').value
                     }
+                },
+                pip: {
+                    camera: document.getElementById('pipOverlayCamera').value,
+                    position: document.getElementById('pipPosition').value,
+                    size: parseInt(document.getElementById('pipSize').value)
                 }
             };
 
@@ -653,6 +730,8 @@
                 const status = document.getElementById('streamConfigStatus');
                 if (mode === 'split') {
                     status.textContent = `(Split: ${config.split.left.camera} + ${config.split.right.camera})`;
+                } else if (mode === 'pip') {
+                    status.textContent = `(PIP: ${config.camera} + ${config.pip.camera})`;
                 } else {
                     status.textContent = `(Camera: ${config.camera})`;
                 }
@@ -667,6 +746,7 @@
         toggleStreamMode(mode) {
             document.getElementById('singleCameraSection').style.display = mode === 'single' ? '' : 'none';
             document.getElementById('splitViewSection').style.display = mode === 'split' ? '' : 'none';
+            document.getElementById('pipViewSection').style.display = mode === 'pip' ? '' : 'none';
         },
 
         async loadEvents() {
