@@ -4,8 +4,8 @@
   "location": "Ragged Mountain, NH",
   "discipline": "SL",
   "course": "",
-  "run1_start": "2026-02-21T09:30:00-05:00",
-  "run2_start": "2026-02-21T11:30:00-05:00",
+  "run1_start": "2026-02-21T10:00:00-05:00",
+  "run2_start": "2026-02-21T11:48:00-05:00",
   "run3_start": "2026-02-21T13:30:00-05:00",
   "interval_seconds": 30,
   "classes": [
