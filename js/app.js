@@ -176,24 +176,15 @@ const App = {
         }
 
         container.innerHTML = events.map(event => {
-            const logoUrl = event.logo_url ? API.getMediaUrl(event.logo_url) : '';
+            const eventHref = event.url || `event.html?event=${event.event_id}`;
+            const stats = [];
+            if (event.video_count) stats.push(`${event.video_count} videos`);
+            if (event.montage_count) stats.push(`${event.montage_count} montages`);
             return `
-            <a href="event.html?event=${event.event_id}" class="event-card">
-                <div class="event-card-image">
-                    ${logoUrl ? `<img src="${logoUrl}" alt="${event.event_name}" class="event-card-logo">` : ''}
-                    <span class="event-badge ${event.event_type}">${event.event_type}</span>
-                    ${event.discipline && event.discipline !== 'freeski' ? `<span class="event-badge discipline">${{sl_youth:'SL',sl_adult:'SL',gs_panel:'GS',sg_panel:'SG'}[event.discipline] || event.discipline}</span>` : ''}
-                    ${(() => { const cd = this.parseCameraDevice(event.event_id); return cd ? `<span class="event-badge camera">${cd}</span>` : ''; })()}
-                </div>
-                <div class="event-card-content">
-                    <h3>${event.event_name}</h3>
-                    <p class="event-card-meta">${this.formatDate(event.event_date)} • ${event.location || ''}</p>
-                    <div class="event-card-stats">
-                        ${event.video_count ? `<span>${event.video_count} videos</span>` : ''}
-                        ${event.montage_count ? `<span>${event.montage_count} montages</span>` : ''}
-                        ${event.teams ? `<span>${event.teams.length} teams</span>` : ''}
-                    </div>
-                </div>
+            <a href="${eventHref}" class="event-list-item">
+                <span class="event-list-name">${event.event_name}</span>
+                <span class="event-list-meta">${this.formatDate(event.event_date)} • ${event.location || ''}</span>
+                <span class="event-list-stats">${stats.join(' • ')}</span>
             </a>
         `}).join('');
     },
