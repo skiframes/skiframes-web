@@ -585,8 +585,8 @@ async function handleDeleteMontage(request, env) {
 async function handleSaveStreamConfig(request, env) {
     const config = await request.json();
 
-    if (!['single', 'split'].includes(config.mode)) {
-        return new Response('Invalid config: mode must be "single" or "split"', {
+    if (!['single', 'split', 'pip'].includes(config.mode)) {
+        return new Response('Invalid config: mode must be "single", "split", or "pip"', {
             status: 400,
             headers: corsHeaders(env, request)
         });
@@ -596,6 +596,7 @@ async function handleSaveStreamConfig(request, env) {
         mode: config.mode,
         camera: config.camera || 'R1',
         split: config.split || null,
+        pip: config.pip || null,
         updatedAt: new Date().toISOString()
     };
 
