@@ -454,6 +454,15 @@
                         </div>
                     </div>
 
+                    <!-- Audio Settings -->
+                    <div style="display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border);">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="audioEnabled" style="width: 18px; height: 18px;" checked>
+                            <span style="font-weight: 600;">Enable Audio</span>
+                        </label>
+                        <span style="font-size: 12px; color: var(--text-secondary);">(from main camera microphone)</span>
+                    </div>
+
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <button class="btn btn-primary" onclick="Admin.saveStreamConfig()">Save Stream Config</button>
                         <span id="streamConfigStatus" style="font-size: 13px; color: var(--text-secondary);"></span>
@@ -671,6 +680,9 @@
                     document.getElementById('pipSize').value = config.pip.size || '25';
                 }
 
+                // Audio setting (default to enabled)
+                document.getElementById('audioEnabled').checked = config.audioEnabled !== false;
+
                 this.toggleStreamMode(config.mode || 'single');
 
                 const status = document.getElementById('streamConfigStatus');
@@ -698,6 +710,7 @@
             const config = {
                 mode: mode,
                 camera: mode === 'pip' ? document.getElementById('pipMainCamera').value : document.getElementById('streamCamera').value,
+                audioEnabled: document.getElementById('audioEnabled').checked,
                 split: {
                     left: {
                         camera: document.getElementById('splitLeftCamera').value,

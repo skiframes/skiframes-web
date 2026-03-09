@@ -595,6 +595,7 @@ async function handleSaveStreamConfig(request, env) {
     const streamConfig = {
         mode: config.mode,
         camera: config.camera || 'R1',
+        audioEnabled: config.audioEnabled !== false,
         split: config.split || null,
         pip: config.pip || null,
         updatedAt: new Date().toISOString()
