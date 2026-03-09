@@ -622,7 +622,10 @@
             <!-- Start List Sidebar -->
             <aside class="startlist-panel hidden" id="startlistPanel">
                 <div class="startlist-header">
-                    <h2>Start List</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Start List</h2>
+                        <button id="hideStartListBtn" class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 11px;">Hide</button>
+                    </div>
                     <div class="search-row">
                         <span class="search-icon">🔍</span>
                         <input type="text" id="athleteSearch" placeholder="Find your racer...">
@@ -697,6 +700,7 @@
                 </div>
 
                 <div class="stream-controls">
+                    <button id="showStartListBtn" class="btn btn-secondary btn-sm" style="display: none;">Show Start List</button>
                     <button id="raceStart" class="btn btn-race-start btn-sm">Jump to Race Start (10:30 AM)</button>
                     <button id="goLive" class="btn btn-primary btn-sm">Go Live</button>
                     <button id="fullscreenBtn" class="btn btn-secondary btn-sm">Fullscreen</button>
@@ -1380,6 +1384,16 @@
         raceStartBtn.addEventListener('click', jumpToRaceStart);
         fullscreenBtn.addEventListener('click', toggleFullscreen);
         liveBadge.addEventListener('click', jumpToLive);
+
+        // Start list toggle
+        document.getElementById('hideStartListBtn').addEventListener('click', function() {
+            document.getElementById('startlistPanel').classList.add('hidden');
+            document.getElementById('showStartListBtn').style.display = '';
+        });
+        document.getElementById('showStartListBtn').addEventListener('click', function() {
+            document.getElementById('startlistPanel').classList.remove('hidden');
+            document.getElementById('showStartListBtn').style.display = 'none';
+        });
 
         dvrTimeline.addEventListener('click', seekToPosition);
 
