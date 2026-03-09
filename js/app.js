@@ -190,7 +190,7 @@ const App = {
     },
 
     /**
-     * Search for athletes across all events
+     * Search for athletes and events
      */
     async performAthleteSearch(query) {
         if (!query || query.trim() === '') {
@@ -206,14 +206,23 @@ const App = {
 
         // Show loading state
         resultsSection.style.display = 'block';
-        resultsContainer.innerHTML = '<div class="loading">Searching athletes...</div>';
+        resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
 
         // Hide other sections while showing results
         this.toggleEventSections(false);
 
         try {
-            // Load all event manifests and search
             const results = [];
+            const matchingEvents = [];
+
+            // First, find events that match by name
+            for (const event of this.state.events) {
+                if (event.event_name.toLowerCase().includes(searchTerm)) {
+                    matchingEvents.push(event);
+                }
+            }
+
+            // Then search for athletes in all events
             for (const event of this.state.events) {
                 const manifest = await API.getEventManifest(event.event_id);
                 const videos = manifest.content?.videos || [];
@@ -237,7 +246,7 @@ const App = {
                 }
             }
 
-            this.renderSearchResults(results, query);
+            this.renderSearchResults(results, query, matchingEvents);
         } catch (error) {
             console.error('Search error:', error);
             resultsContainer.innerHTML = '<div class="empty-state"><h3>Search failed</h3><p>Please try again</p></div>';
@@ -247,42 +256,61 @@ const App = {
     /**
      * Render search results
      */
-    renderSearchResults(results, query) {
+    renderSearchResults(results, query, matchingEvents = []) {
         const container = document.getElementById('searchResultsGrid');
         if (!container) return;
 
-        if (results.length === 0) {
+        if (results.length === 0 && matchingEvents.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
-                    <h3>No athletes found</h3>
+                    <h3>No results found</h3>
                     <p>No results for "${query}"</p>
                 </div>
             `;
             return;
         }
 
-        // Flatten results into individual athlete entries
         let html = '';
-        results.forEach(({ event, manifest, matches }) => {
-            const logoUrl = event.logo_url ? API.getMediaUrl(event.logo_url) : '';
-            matches.forEach(video => {
+
+        // Show matching events first
+        if (matchingEvents.length > 0) {
+            html += '<div class="search-section-header">Matching Events</div>';
+            matchingEvents.forEach(event => {
+                const eventHref = event.url || `event.html?event=${event.event_id}`;
+                const stats = [];
+                if (event.video_count) stats.push(`${event.video_count} videos`);
+                if (event.montage_count) stats.push(`${event.montage_count} montages`);
                 html += `
-                <a href="event.html?event=${event.event_id}&search=${encodeURIComponent(video.athlete)}" class="search-result-card">
-                    <div class="search-result-logo">
-                        ${logoUrl ? `<img src="${logoUrl}" alt="">` : ''}
-                    </div>
-                    <div class="search-result-info">
-                        <h3>${video.athlete}</h3>
-                        <p class="search-result-meta">
-                            Bib ${video.bib} • ${video.team || ''} • ${video.gender}
-                            ${video.rank ? `• Rank ${video.rank}` : ''}
-                        </p>
-                        <p class="search-result-event">${event.event_name}</p>
-                    </div>
+                <a href="${eventHref}" class="event-list-item">
+                    <span class="event-list-name">${event.event_name}</span>
+                    <span class="event-list-meta">${this.formatDate(event.event_date)} • ${event.location || ''}</span>
+                    <span class="event-list-stats">${stats.join(' • ')}</span>
                 </a>
                 `;
             });
-        });
+        }
+
+        // Then show athlete results
+        if (results.length > 0) {
+            html += '<div class="search-section-header">Athletes</div>';
+            results.forEach(({ event, manifest, matches }) => {
+                matches.forEach(video => {
+                    const eventHref = event.url ? event.url : `event.html?event=${event.event_id}&search=${encodeURIComponent(video.athlete)}`;
+                    html += `
+                    <a href="${eventHref}" class="search-result-card">
+                        <div class="search-result-info">
+                            <h3>${video.athlete}</h3>
+                            <p class="search-result-meta">
+                                Bib ${video.bib} • ${video.team || ''} • ${video.gender}
+                                ${video.rank ? `• Rank ${video.rank}` : ''}
+                            </p>
+                            <p class="search-result-event">${event.event_name}</p>
+                        </div>
+                    </a>
+                    `;
+                });
+            });
+        }
 
         container.innerHTML = html;
     },

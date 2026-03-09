@@ -319,9 +319,9 @@ body {
    ======================================== */
 
 .events-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .event-card {
@@ -461,6 +461,21 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.search-section-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.search-section-header:first-child {
+    margin-top: 0;
 }
 
 .search-result-card {
@@ -1767,10 +1782,9 @@ body {
         font-size: 22px;
     }
 
-    /* Event cards */
+    /* Event list */
     .events-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 0;
     }
 
     .event-card-image {
