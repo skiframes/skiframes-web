@@ -254,6 +254,7 @@ async function handleSaveBannerConfig(request, env) {
         title: config.title || '',
         subtitle: config.subtitle || '',
         raceStartTime: config.raceStartTime || null,
+        startListEnabled: config.startListEnabled !== false,
         updatedAt: new Date().toISOString()
     };
 
