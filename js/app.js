@@ -516,7 +516,7 @@ const App = {
 
             // Then search for athletes in all events
             for (const event of this.state.events) {
-                const manifest = await API.getEventManifest(event.event_id);
+                const manifest = await API.getEventManifest(event.event_id, false, event.url);
                 const videos = manifest.content?.videos || [];
 
                 // Filter to non-comparison videos only
@@ -587,7 +587,9 @@ const App = {
             html += '<div class="search-section-header">Athletes</div>';
             results.forEach(({ event, manifest, matches }) => {
                 matches.forEach(video => {
-                    const eventHref = event.url ? event.url : `event.html?event=${event.event_id}&search=${encodeURIComponent(video.athlete)}`;
+                    const searchParam = `search=${encodeURIComponent(video.athlete)}`;
+                    // Always use event.html for search results so scroll/highlight works
+                    const eventHref = `event.html?event=${event.event_id}&${searchParam}`;
                     html += `
                     <a href="${eventHref}" class="search-result-card">
                         <div class="search-result-info">
@@ -645,8 +647,13 @@ const App = {
             return;
         }
 
+        // Look up event URL from index (needed for /races/ events)
+        const index = await API.getEventsIndex();
+        const eventInfo = (index.events || []).find(e => e.event_id === eventId);
+        const eventUrl = eventInfo?.url || null;
+
         // Load event data
-        const manifest = await API.getEventManifest(eventId);
+        const manifest = await API.getEventManifest(eventId, false, eventUrl);
         this.state.currentEvent = manifest;
 
         // Update page header
@@ -684,6 +691,11 @@ const App = {
 
         // Render content
         this.renderEventContent();
+
+        // Scroll to and highlight search matches
+        if (searchQuery) {
+            this.scrollToSearchMatches(searchQuery);
+        }
 
         // Initialize video player
         Player.init(
@@ -1147,6 +1159,45 @@ const App = {
 
         // Update sort button active state
         this.updateSortButtons();
+    },
+
+    /**
+     * Scroll to and highlight rows matching the search query
+     */
+    scrollToSearchMatches(query) {
+        if (!query) return;
+
+        const searchTerm = query.trim().toLowerCase();
+        const container = document.getElementById('videosGrid');
+        if (!container) return;
+
+        // Find all matching rows
+        const rows = container.querySelectorAll('.video-row');
+        let firstMatch = null;
+
+        rows.forEach(row => {
+            const athleteCell = row.querySelector('.col-athlete');
+            const bibCell = row.querySelector('.col-bib');
+
+            if (!athleteCell) return;
+
+            const athleteName = athleteCell.textContent.toLowerCase();
+            const bib = bibCell ? bibCell.textContent.trim() : '';
+
+            if (athleteName.includes(searchTerm) || bib === query.trim()) {
+                row.classList.add('search-highlight');
+                if (!firstMatch) {
+                    firstMatch = row;
+                }
+            }
+        });
+
+        // Scroll to the first match with some offset from the top
+        if (firstMatch) {
+            setTimeout(() => {
+                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
     },
 
     sortVideos(videos) {
