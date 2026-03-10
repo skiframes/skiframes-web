@@ -136,9 +136,14 @@ const App = {
         });
     },
 
+    // Events to hide from the index page
+    hiddenEventDates: ['2026-02-28'],
+
     renderHomeEvents() {
         const allEvents = this.state.events;
-        const filteredEvents = Filters.filterEvents(allEvents);
+        // Filter out hidden events
+        const visibleEvents = allEvents.filter(e => !this.hiddenEventDates.includes(e.event_date));
+        const filteredEvents = Filters.filterEvents(visibleEvents);
         const sortedEvents = Filters.sortEventsByDate(filteredEvents);
 
         // Recent events (top 6)
@@ -161,9 +166,28 @@ const App = {
         this.renderEventGrid('testEvents', testEvents);
     },
 
+    // Event name overrides for specific dates
+    eventNameOverrides: {
+        '2026-02-01': 'NHARA Western Qualifier - Ragged Mountain - SL',
+        '2026-02-22': 'NHARA Western Qualifier - Proctor - GS'
+    },
+
+    // Category groups for splitting events
+    getCategoryGroup(categories) {
+        if (!categories || categories.length === 0) return 'other';
+        // Check if any category is "Scored" or similar
+        const hasScored = categories.some(c =>
+            c.toLowerCase().includes('scored') || c.toLowerCase().includes('fis')
+        );
+        if (hasScored) return 'scored';
+        return 'youth'; // U10, U12, U14, U16, etc.
+    },
+
     renderEventGrid(containerId, events) {
         const container = document.getElementById(containerId);
         if (!container) return;
+
+        container.className = 'events-grid';
 
         if (events.length === 0) {
             container.innerHTML = `
@@ -175,18 +199,286 @@ const App = {
             return;
         }
 
-        container.innerHTML = events.map(event => {
-            const eventHref = event.url || `event.html?event=${event.event_id}`;
-            const stats = [];
-            if (event.video_count) stats.push(`${event.video_count} videos`);
-            if (event.montage_count) stats.push(`${event.montage_count} montages`);
-            return `
-            <a href="${eventHref}" class="event-list-item">
-                <span class="event-list-name">${event.event_name}</span>
-                <span class="event-list-meta">${this.formatDate(event.event_date)} • ${event.location || ''}</span>
-                <span class="event-list-stats">${stats.join(' • ')}</span>
-            </a>
-        `}).join('');
+        // Group events by date AND category group (youth vs scored)
+        const groupedByDateAndType = {};
+        events.forEach(event => {
+            const date = event.event_date;
+            const catGroup = this.getCategoryGroup(event.categories);
+            const key = `${date}__${catGroup}`;
+            if (!groupedByDateAndType[key]) {
+                groupedByDateAndType[key] = [];
+            }
+            groupedByDateAndType[key].push(event);
+        });
+
+        // Render rows - grouped if multiple events in same date+category group
+        const rows = [];
+        Object.entries(groupedByDateAndType).forEach(([key, dateEvents]) => {
+            if (dateEvents.length > 1) {
+                const date = key.split('__')[0];
+                // Multiple events - render as grouped row
+                rows.push(this.renderGroupedEventRow(date, dateEvents));
+            } else {
+                // Single event - render normally
+                rows.push(this.renderSingleEventRow(dateEvents[0]));
+            }
+        });
+
+        container.innerHTML = rows.join('');
+    },
+
+    renderSingleEventRow(event) {
+        const eventHref = event.url || `event.html?event=${event.event_id}`;
+        const isTrainingOrFreeski = ['training', 'gate_training', 'free_skiing'].includes(event.event_type);
+        const tags = this.buildEventTags(event);
+
+        // For training/freeski, always include Ragged Mt team tag at the end
+        if (isTrainingOrFreeski) {
+            const normalizedTeams = this.normalizeTeams(event.teams || []);
+            if (!normalizedTeams.includes('Ragged Mt')) {
+                tags.push(`<span class="event-tag-pill team">Ragged Mt</span>`);
+            }
+        }
+
+        // Check for event name override
+        const eventName = this.eventNameOverrides[event.event_date] || event.event_name;
+
+        // For training/freeskiing, don't show event name - tags have all the info
+        const nameHtml = isTrainingOrFreeski ? '' : `<span class="event-row-name">${eventName}</span>`;
+
+        // Build counts
+        const counts = [];
+        if (event.video_count) counts.push(`${event.video_count} videos`);
+        if (event.montage_count) counts.push(`${event.montage_count} photo montages`);
+        const countsHtml = counts.length > 0 ? `<span class="event-row-counts">${counts.join(' · ')}</span>` : '';
+
+        return `
+        <a href="${eventHref}" class="event-row">
+            <span class="event-row-date">${this.formatDateShort(event.event_date)}</span>
+            ${nameHtml}
+            <div class="event-row-tags">${tags.join('')}</div>
+            ${countsHtml}
+        </a>`;
+    },
+
+    renderGroupedEventRow(date, events) {
+        const isTrainingOrFreeski = events.every(e =>
+            ['training', 'gate_training', 'free_skiing'].includes(e.event_type)
+        );
+
+        // Check for name override, otherwise find common name
+        let groupName = '';
+        if (!isTrainingOrFreeski) {
+            groupName = this.eventNameOverrides[date] || this.findGroupName(events);
+        }
+
+        // Collect all unique tags from all events in the group
+        const allTags = new Set();
+        const allTeams = new Set();
+        events.forEach(event => {
+            if (event.discipline) allTags.add(`disc:${event.discipline}`);
+            (event.categories || []).forEach(cat => allTags.add(`cat:${cat}`));
+            (event.teams || []).forEach(team => allTeams.add(this.normalizeTeamName(team)));
+        });
+
+        const tags = [];
+        allTags.forEach(tag => {
+            if (tag.startsWith('disc:')) {
+                const disc = tag.replace('disc:', '');
+                // Skip "freeski" discipline for training events
+                if (isTrainingOrFreeski && disc === 'freeski') return;
+                const discLabels = { 'sl': 'SL', 'gs': 'GS', 'sg': 'SG', 'freeski': 'Free' };
+                tags.push(`<span class="event-tag-pill disc-${disc}">${discLabels[disc] || disc.toUpperCase()}</span>`);
+            } else if (tag.startsWith('cat:')) {
+                tags.push(`<span class="event-tag-pill category">${tag.replace('cat:', '')}</span>`);
+            }
+        });
+
+        // Team tags (limit to 3) - normalized and deduped
+        const normalizedTeams = [...allTeams];
+        normalizedTeams.slice(0, 3).forEach(team => {
+            tags.push(`<span class="event-tag-pill team">${team}</span>`);
+        });
+        if (normalizedTeams.length > 3) {
+            tags.push(`<span class="event-tag-pill team">+${normalizedTeams.length - 3}</span>`);
+        }
+
+        // Build buttons for each sub-event
+        const buttons = events.map(event => {
+            const href = event.url || `event.html?event=${event.event_id}`;
+            const label = this.getSubEventLabel(event, events);
+            return `<a href="${href}" class="event-sub-btn">${label}</a>`;
+        }).join('');
+
+        const nameHtml = groupName ? `<span class="event-row-name">${groupName}</span>` : '';
+
+        // For training/freeski, always include Ragged Mt team tag at the end
+        if (isTrainingOrFreeski && !normalizedTeams.includes('Ragged Mt')) {
+            tags.push(`<span class="event-tag-pill team">Ragged Mt</span>`);
+        }
+
+        // Sum up counts from all events in group
+        const totalVideos = events.reduce((sum, e) => sum + (e.video_count || 0), 0);
+        const totalMontages = events.reduce((sum, e) => sum + (e.montage_count || 0), 0);
+        const counts = [];
+        if (totalVideos) counts.push(`${totalVideos} videos`);
+        if (totalMontages) counts.push(`${totalMontages} photo montages`);
+        const countsHtml = counts.length > 0 ? `<span class="event-row-counts">${counts.join(' · ')}</span>` : '';
+
+        return `
+        <div class="event-row event-row-grouped">
+            <span class="event-row-date">${this.formatDateShort(date)}</span>
+            ${nameHtml}
+            <div class="event-sub-buttons">${buttons}</div>
+            <div class="event-row-tags">${tags.join('')}</div>
+            ${countsHtml}
+        </div>`;
+    },
+
+    findGroupName(events) {
+        // Try to find a common prefix in event names
+        const names = events.map(e => e.event_name);
+
+        // Check for common patterns
+        // Look for "Event Name - Category - Discipline - Run X" pattern
+        const firstParts = names.map(name => {
+            // Remove run numbers and trailing details
+            return name.replace(/\s*-\s*Run\s*\d+.*/i, '')
+                       .replace(/\s*Run\s*\d+.*/i, '')
+                       .replace(/\s*-\s*R\d+.*/i, '');
+        });
+
+        // If all events share the same prefix, use it
+        const uniquePrefixes = [...new Set(firstParts)];
+        if (uniquePrefixes.length === 1) {
+            return uniquePrefixes[0];
+        }
+
+        // Find longest common prefix
+        let prefix = names[0];
+        for (let i = 1; i < names.length; i++) {
+            while (!names[i].startsWith(prefix) && prefix.length > 0) {
+                prefix = prefix.slice(0, -1);
+            }
+        }
+
+        // Clean up trailing separators
+        prefix = prefix.replace(/\s*[-–]\s*$/, '').trim();
+
+        return prefix || events[0].event_name;
+    },
+
+    getSubEventLabel(event, allEvents) {
+        const name = event.event_name;
+        const isTrainingOrFreeski = ['training', 'gate_training', 'free_skiing'].includes(event.event_type);
+
+        // For races, build label from category + run number
+        if (!isTrainingOrFreeski) {
+            const runMatch = name.match(/Run\s*(\d+)/i) || name.match(/R(\d+)/i);
+
+            // Get category from event.categories or extract from name
+            let category = event.categories && event.categories.length > 0 ? event.categories[0] : '';
+            if (!category) {
+                // Try to extract from event name (e.g., "U12", "U14", "Scored")
+                const catMatch = name.match(/\b(U\d+|Scored|FIS|Masters)\b/i);
+                if (catMatch) category = catMatch[1].toUpperCase();
+            }
+
+            // Collect all categories from all events (from both categories array and names)
+            const allCategories = new Set();
+            allEvents.forEach(e => {
+                if (e.categories) e.categories.forEach(c => allCategories.add(c));
+                const match = e.event_name.match(/\b(U\d+|Scored|FIS|Masters)\b/i);
+                if (match) allCategories.add(match[1].toUpperCase());
+            });
+            const multipleCategories = allCategories.size > 1;
+
+            if (runMatch && category) {
+                // Always include category if we have one, plus run number
+                // e.g., "U12 Run 1"
+                return `${category} Run ${runMatch[1]}`;
+            } else if (runMatch) {
+                return `Run ${runMatch[1]}`;
+            } else if (category) {
+                return category;
+            }
+        }
+
+        // For training/freeski, try camera_id or device_id
+        if (isTrainingOrFreeski) {
+            if (event.camera_id) return event.camera_id.toUpperCase();
+            // Extract camera from event_id (e.g., "2026-02-01_u12_gate_training_R1_j40" -> "R1")
+            const parts = event.event_id.split('_');
+            if (parts.length >= 5) {
+                const cameraId = parts[parts.length - 2];
+                if (cameraId && cameraId.match(/^[A-Za-z]\d+$/)) {
+                    return cameraId.toUpperCase();
+                }
+            }
+        }
+
+        // Try to extract gender
+        if (name.includes('Women') || name.includes('Girls')) return 'Women';
+        if (name.includes('Men') || name.includes('Boys')) return 'Men';
+
+        // Fallback: use index number
+        const idx = allEvents.indexOf(event) + 1;
+        return `#${idx}`;
+    },
+
+    // Map short team names to long names
+    normalizeTeamName(team) {
+        const teamMap = {
+            'RMS': 'Ragged Mt',
+            'RMST': 'Ragged Mt',
+            'CMS': 'Cardigan Mt',
+            'FS': 'Ford Sayre',
+            'SUN': 'Sunapee',
+            'PROC': 'Proctor'
+        };
+        return teamMap[team] || team;
+    },
+
+    // Dedupe and normalize team names
+    normalizeTeams(teams) {
+        if (!teams || teams.length === 0) return [];
+        const normalized = teams.map(t => this.normalizeTeamName(t));
+        return [...new Set(normalized)];
+    },
+
+    buildEventTags(event, options = {}) {
+        const tags = [];
+        const teamTags = [];
+        const hideTeams = options.hideTeams || false;
+        const isTrainingOrFreeski = ['training', 'gate_training', 'free_skiing'].includes(event.event_type);
+
+        // Discipline tag (no type tags anymore) - skip "freeski" for training events
+        if (event.discipline && !(isTrainingOrFreeski && event.discipline === 'freeski')) {
+            const discLabels = { 'sl': 'SL', 'gs': 'GS', 'sg': 'SG', 'freeski': 'Free' };
+            tags.push(`<span class="event-tag-pill disc-${event.discipline}">${discLabels[event.discipline] || event.discipline.toUpperCase()}</span>`);
+        }
+
+        // Category tags
+        if (event.categories && event.categories.length > 0) {
+            event.categories.forEach(cat => {
+                tags.push(`<span class="event-tag-pill category">${cat}</span>`);
+            });
+        }
+
+        // Team tags (limit to first 3) - normalized and deduped - added last
+        if (!hideTeams && event.teams && event.teams.length > 0) {
+            const normalizedTeams = this.normalizeTeams(event.teams);
+            const displayTeams = normalizedTeams.slice(0, 3);
+            displayTeams.forEach(team => {
+                teamTags.push(`<span class="event-tag-pill team">${team}</span>`);
+            });
+            if (normalizedTeams.length > 3) {
+                teamTags.push(`<span class="event-tag-pill team">+${normalizedTeams.length - 3}</span>`);
+            }
+        }
+
+        // Return with team tags at the end
+        return [...tags, ...teamTags];
     },
 
     /**
@@ -275,19 +567,19 @@ const App = {
         // Show matching events first
         if (matchingEvents.length > 0) {
             html += '<div class="search-section-header">Matching Events</div>';
+            html += '<div class="events-grid" style="margin-bottom: 16px;">';
             matchingEvents.forEach(event => {
                 const eventHref = event.url || `event.html?event=${event.event_id}`;
-                const stats = [];
-                if (event.video_count) stats.push(`${event.video_count} videos`);
-                if (event.montage_count) stats.push(`${event.montage_count} montages`);
+                const tags = this.buildEventTags(event);
                 html += `
-                <a href="${eventHref}" class="event-list-item">
-                    <span class="event-list-name">${event.event_name}</span>
-                    <span class="event-list-meta">${this.formatDate(event.event_date)} • ${event.location || ''}</span>
-                    <span class="event-list-stats">${stats.join(' • ')}</span>
+                <a href="${eventHref}" class="event-row">
+                    <span class="event-row-date">${this.formatDateShort(event.event_date)}</span>
+                    <span class="event-row-name">${event.event_name}</span>
+                    <div class="event-row-tags">${tags.join('')}</div>
                 </a>
                 `;
             });
+            html += '</div>';
         }
 
         // Then show athlete results
@@ -650,8 +942,21 @@ const App = {
 
         if (variants.length === 0) return;
 
-        // Default to the slowest speed (first in sorted list)
-        Filters.state.montageVariant = variants[0];
+        // Count montages per variant to find the most common one
+        const variantCounts = {};
+        montages.forEach(m => {
+            if (m.variant) {
+                variantCounts[m.variant] = (variantCounts[m.variant] || 0) + 1;
+            }
+        });
+
+        // Find the slowest variant that has a significant number of montages
+        // (at least 50% of the max count for any variant)
+        const maxCount = Math.max(...Object.values(variantCounts));
+        const threshold = maxCount * 0.5;
+        const defaultVariant = variants.find(v => (variantCounts[v] || 0) >= threshold) || variants[0];
+
+        Filters.state.montageVariant = defaultVariant;
 
         this.renderMontageSpeedButtons(variants);
     },
@@ -1243,7 +1548,9 @@ const App = {
         const select = document.getElementById(selectId);
         if (!select) return;
 
-        teams.forEach(team => {
+        // Normalize and dedupe team names
+        const normalizedTeams = this.normalizeTeams(teams);
+        normalizedTeams.sort().forEach(team => {
             const option = document.createElement('option');
             option.value = team;
             option.textContent = team;
@@ -1668,6 +1975,17 @@ const App = {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
+        });
+    },
+
+    formatDateShort(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr + 'T00:00:00');
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
         });
     },
 

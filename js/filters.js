@@ -68,6 +68,23 @@ const Filters = {
     },
 
     // ========================================
+    // Team Name Normalization
+    // ========================================
+
+    // Map short team names to long names
+    normalizeTeamName(team) {
+        const teamMap = {
+            'RMS': 'Ragged Mt',
+            'RMST': 'Ragged Mt',
+            'CMS': 'Cardigan Mt',
+            'FS': 'Ford Sayre',
+            'SUN': 'Sunapee',
+            'PROC': 'Proctor'
+        };
+        return teamMap[team] || team;
+    },
+
+    // ========================================
     // Filter Functions
     // ========================================
 
@@ -103,9 +120,12 @@ const Filters = {
                 return false;
             }
 
-            // Team filter - check if event has this team
-            if (this.state.team && event.teams && !event.teams.includes(this.state.team)) {
-                return false;
+            // Team filter - check if event has this team (with normalization)
+            if (this.state.team && event.teams) {
+                const normalizedEventTeams = event.teams.map(t => this.normalizeTeamName(t));
+                if (!normalizedEventTeams.includes(this.state.team)) {
+                    return false;
+                }
             }
 
             // Category filter (case-insensitive)
