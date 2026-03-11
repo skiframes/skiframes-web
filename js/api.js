@@ -27,9 +27,21 @@ const API = {
     /**
      * Fetch a single event's manifest
      */
-    async getEventManifest(eventId, bustCache = false) {
+    async getEventManifest(eventId, bustCache = false, eventUrl = null) {
         try {
             const cacheBust = bustCache ? `?t=${Date.now()}` : '';
+
+            // For events with custom URLs (like /races/), try the race manifest
+            if (eventUrl && eventUrl.startsWith('/races/')) {
+                const raceManifestUrl = `${eventUrl}race_manifest.json${cacheBust}`;
+                const response = await fetch(raceManifestUrl);
+                if (response.ok) {
+                    const rawManifest = await response.json();
+                    return this.normalizeRaceManifest(rawManifest, eventId, eventUrl);
+                }
+            }
+
+            // Standard manifest location
             const response = await fetch(`${this.MEDIA_BASE}/events/${eventId}/manifest.json${cacheBust}`);
             if (!response.ok) throw new Error('Failed to fetch event manifest');
             const rawManifest = await response.json();
@@ -42,6 +54,70 @@ const API = {
     },
 
     /**
+     * Normalize race manifest format (from /races/ pages)
+     * Structure: categories[] -> athletes[] with first/last/club/bib
+     */
+    normalizeRaceManifest(manifest, eventId, eventUrl) {
+        const videos = [];
+        const categories = manifest.categories || [];
+
+        categories.forEach(category => {
+            // Extract gender from category id (e.g., "U12_Girls" -> "Women")
+            const genderMatch = category.id?.match(/(Girls|Boys|Women|Men)$/i);
+            let gender = genderMatch ? genderMatch[1] : '';
+            // Normalize Girls/Boys to Women/Men for consistency with render code
+            if (gender.toLowerCase() === 'girls') gender = 'Women';
+            if (gender.toLowerCase() === 'boys') gender = 'Men';
+
+            // Extract age group from category id (e.g., "U12_Girls" -> "U12")
+            const ageMatch = category.id?.match(/^(U\d+)/i);
+            const ageGroup = ageMatch ? ageMatch[1] : category.label || '';
+
+            const athletes = category.athletes || [];
+            athletes.forEach((athlete, idx) => {
+                const athleteName = [athlete.first, athlete.last].filter(Boolean).join(' ') || `Bib ${athlete.bib}`;
+
+                // Create video entries for each run
+                [1, 2].forEach(runNum => {
+                    const runTimeKey = `run${runNum}_time`;
+                    const runTime = athlete[runTimeKey];
+
+                    // Only add if the athlete has data for this run
+                    if (runTime !== undefined && runTime !== null) {
+                        videos.push({
+                            id: `v${videos.length + 1}`,
+                            athlete: athleteName,
+                            bib: athlete.bib,
+                            team: athlete.club || '',
+                            gender: gender,
+                            category: ageGroup,
+                            run: runNum,
+                            duration: runTime,
+                            video_url: '',
+                            thumb_url: '',
+                            is_comparison: false,
+                            rank: athlete.rank
+                        });
+                    }
+                });
+            });
+        });
+
+        return {
+            event_id: eventId,
+            event_name: manifest.event?.name || eventId,
+            event_date: manifest.event?.date,
+            event_type: 'race',
+            location: manifest.event?.venue || manifest.event?.location || '',
+            url: eventUrl,
+            content: {
+                videos: videos,
+                montages: []
+            }
+        };
+    },
+
+    /**
      * Normalize manifest from photo-montages format to skiframes-web format
      * Handles both old skiframes format and new photo-montages format
      */
@@ -51,10 +127,17 @@ const API = {
             return manifest;
         }
 
+        // Check for race manifest format (has categories[] with athletes)
+        if (manifest.categories && Array.isArray(manifest.categories) &&
+            manifest.categories.length > 0 && manifest.categories[0].athletes) {
+            return this.normalizeRaceManifest(manifest, eventId, null);
+        }
+
         // Check for edge montage format (has runs[] array from RTSP detection)
         if (manifest.runs && Array.isArray(manifest.runs)) {
-            // Filter out false positive detections (runs shorter than 1 second)
-            const MIN_RUN_DURATION = 1.0;
+            // Filter out false positive detections - use manifest setting or default to 1.0s
+            // (Server-side already filters with min_run_duration_seconds, this is a fallback)
+            const MIN_RUN_DURATION = manifest.min_run_duration_seconds || 1.0;
             const validRuns = manifest.runs.filter(run =>
                 run.elapsed_time == null || run.elapsed_time >= MIN_RUN_DURATION
             );
