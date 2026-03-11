@@ -588,8 +588,13 @@ const App = {
             results.forEach(({ event, manifest, matches }) => {
                 matches.forEach(video => {
                     const searchParam = `search=${encodeURIComponent(video.athlete)}`;
-                    // Always use event.html for search results so scroll/highlight works
-                    const eventHref = `event.html?event=${event.event_id}&${searchParam}`;
+                    // Use custom URL if available (e.g., /races/ pages), otherwise event.html
+                    const eventHref = event.url
+                        ? `${event.url}?${searchParam}`
+                        : `event.html?event=${event.event_id}&${searchParam}`;
+                    const eventDate = this.formatDateShort(event.event_date);
+                    const location = event.location || manifest.location || '';
+                    const runInfo = video.run ? `Run ${video.run}` : '';
                     html += `
                     <a href="${eventHref}" class="search-result-card">
                         <div class="search-result-info">
@@ -597,8 +602,10 @@ const App = {
                             <p class="search-result-meta">
                                 Bib ${video.bib} • ${video.team || ''} • ${video.gender}
                                 ${video.rank ? `• Rank ${video.rank}` : ''}
+                                ${runInfo ? `• ${runInfo}` : ''}
                             </p>
                             <p class="search-result-event">${event.event_name}</p>
+                            <p class="search-result-location">${eventDate} • ${location}</p>
                         </div>
                     </a>
                     `;
@@ -665,14 +672,9 @@ const App = {
         // Setup filter listeners
         this.setupEventFilters();
 
-        // Apply search filter from URL if present
-        if (searchQuery) {
-            const searchInput = document.getElementById('athleteSearch');
-            if (searchInput) {
-                searchInput.value = searchQuery;
-            }
-            Filters.set('search', searchQuery);
-        }
+        // Clear any previous search filter and store query for highlighting only
+        Filters.set('search', '');
+        this.state.highlightQuery = searchQuery || null;
 
         // Setup sort buttons
         this.setupSortButtons();

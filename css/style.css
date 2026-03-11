@@ -720,6 +720,12 @@ body {
     font-weight: 500;
 }
 
+.search-result-location {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 2px;
+}
+
 /* ========================================
    Event Page Header
    ======================================== */
@@ -1050,6 +1056,20 @@ body {
 
 .video-table tbody tr:hover {
     background: var(--background);
+}
+
+.video-table tbody tr.search-highlight {
+    background: rgba(59, 130, 246, 0.15);
+    animation: highlight-pulse 2s ease-in-out;
+}
+
+.video-table tbody tr.search-highlight:hover {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+@keyframes highlight-pulse {
+    0% { background: rgba(59, 130, 246, 0.4); }
+    100% { background: rgba(59, 130, 246, 0.15); }
 }
 
 .video-table tbody tr:last-child td {
