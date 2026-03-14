@@ -352,6 +352,13 @@
             color: #b45309;
             font-weight: 700;
         }
+        .athlete-row .points {
+            width: 54px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
 
         /* Video area */
         .video-area {
@@ -640,8 +647,14 @@
                     </div>
                     <div class="startlist-status" id="startlistStatus"></div>
                     <details class="adjust-panel" id="adjustPanel">
-                        <summary>Adjust timing</summary>
-                        <p class="adjust-note">Shifts the schedule for all viewers</p>
+                        <summary>Adjust timing (admin)</summary>
+                        <p class="adjust-note">Sync schedule for ALL viewers</p>
+                        <div class="sync-bib-row" style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                            <label style="font-size: 11px; font-weight: 600; white-space: nowrap;">On course now:</label>
+                            <input type="number" id="syncBibInput" placeholder="Bib #" style="width: 70px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px;">
+                            <button class="adjust-btn" onclick="StartList.syncToBib()" style="background: #059669; color: white; border-color: #059669;">Sync</button>
+                        </div>
+                        <p style="font-size: 10px; color: #6b7280; margin: 0 0 8px 0;">Enter the bib you see racing NOW to sync timing for everyone</p>
                         <div class="adjust-buttons">
                             <button class="adjust-btn" onclick="StartList.adjustTiming(-300000)">-5m</button>
                             <button class="adjust-btn" onclick="StartList.adjustTiming(-60000)">-1m</button>
@@ -786,7 +799,8 @@
                             last: a.last,
                             club: a.club,
                             className: a.className,
-                            estTime: estTime
+                            estTime: estTime,
+                            start_time: a.start_time
                         });
                         this.bibToIndex[a.bib] = this.flatOrder.length - 1;
                         offset += interval;
@@ -837,14 +851,13 @@
                         else if (i === currentIdx + 1) rowClass += ' on-deck';
                     }
 
-                    const adjustedTime = new Date(a.estTime.getTime() + this.timeOffsetMs);
-                    const timeStr = adjustedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const estTimeStr = a.start_time || '';
 
                     html += `<div class="${rowClass}" data-bib="${a.bib}" data-idx="${i}">
                         <span class="bib">${a.bib}</span>
                         <span class="name">${a.first} ${a.last}</span>
                         <span class="club">${a.club}</span>
-                        <span class="est-time">${timeStr}</span>
+                        <span class="est-time">${estTimeStr}</span>
                     </div>`;
                 }
 
@@ -993,6 +1006,40 @@
                     const min = Math.floor(abs / 60000);
                     const sec = Math.floor((abs % 60000) / 1000);
                     el.textContent = `Adjusted: ${sign}${min}:${sec.toString().padStart(2, '0')}`;
+                }
+            },
+
+            syncToBib() {
+                const input = document.getElementById('syncBibInput');
+                const bib = parseInt(input.value);
+                if (isNaN(bib)) {
+                    alert('Enter a valid bib number');
+                    return;
+                }
+
+                const idx = this.bibToIndex[bib];
+                if (idx === undefined) {
+                    alert('Bib ' + bib + ' not found in start list');
+                    return;
+                }
+
+                const athlete = this.flatOrder[idx];
+                if (!athlete) return;
+
+                // Calculate offset: if this athlete should be on course NOW,
+                // the offset is (now - scheduled time)
+                const now = Date.now();
+                const scheduledTime = athlete.estTime.getTime();
+                this.timeOffsetMs = now - scheduledTime;
+
+                this.render();
+                this.updateAdjustDisplay();
+                this.broadcastOffset();
+                input.value = '';
+
+                const el = document.getElementById('adjustDisplay');
+                if (el) {
+                    el.textContent = `Synced to Bib ${bib} (${athlete.first} ${athlete.last})`;
                 }
             },
 
